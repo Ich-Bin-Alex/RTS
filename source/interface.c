@@ -15,18 +15,17 @@ static Vector2 Select1, Select2;
 void updateInterface() {
 	static bool Selected = true;
 
-	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= GetScreenWidth() - 50) CameraX += 15;
-	else if(IsKeyDown(KEY_LEFT) || GetMouseX() <= 50) CameraX -= 15;
-	if(IsKeyDown(KEY_DOWN) || GetMouseY() >= GetScreenHeight() - 50) CameraY += 15;
-	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 50) CameraY -= 15;
-	if(CameraX > MAP_SIZE*8*DRAW_SIZE-GetScreenWidth()) 
-		CameraX = MAP_SIZE*8*DRAW_SIZE-GetScreenWidth();
-	if(CameraX < 0) CameraX = 0;
-	if(CameraY < 0) CameraY = 0;
-	if(CameraY > MAP_SIZE*8*DRAW_SIZE-GetScreenHeight()) 
-		CameraY = MAP_SIZE*8*DRAW_SIZE-GetScreenHeight();
-
+	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
+
+	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 50) CameraX += 15;
+	else if(IsKeyDown(KEY_LEFT) || GetMouseX() <= 50) CameraX -= 15;
+	if(IsKeyDown(KEY_DOWN) || GetMouseY() >= height - 50) CameraY += 15;
+	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 50) CameraY -= 15;
+	if(CameraX < 0) CameraX = 0;
+	else if(CameraX > MAP_SIZE*8*DRAW_SIZE-width) CameraX = MAP_SIZE*8*DRAW_SIZE-width;
+	if(CameraY < 0) CameraY = 0;
+	else if(CameraY > MAP_SIZE*8*DRAW_SIZE-height) CameraY = MAP_SIZE*8*DRAW_SIZE-height;
 
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 		Selected = RectSelect = false;
@@ -34,16 +33,16 @@ void updateInterface() {
 		for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 			if(!Units[i].Alive) continue;
 			Units[i].Selected = false;
-			if(x > Units[i].Position.x*8 && x < Units[i].Position.x*8+8 &&
-			   y > Units[i].Position.y*8 && y < Units[i].Position.y*8+8 && !Selected && !Units[i].Player)
+			if(x > Units[i].Position.x*8 && x < Units[i].Position.x*8+8 && !Units[i].Player &&
+			   y > Units[i].Position.y*8 && y < Units[i].Position.y*8+8 && !Selected)
 				Units[i].Selected = Selected = true;
 		}
 	} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
 		if(RectSelect && abs(Select1.x - Select2.x) > 1 && abs(Select1.y - Select2.y) > 1) {
-			i32 x1 = ((Select1.x < Select2.x ? Select1.x : Select2.x) + CameraX) / DRAW_SIZE;
-			i32 y1 = ((Select1.y < Select2.y ? Select1.y : Select2.y) + CameraY) / DRAW_SIZE;
-			i32 x2 = ((Select1.x < Select2.x ? Select2.x : Select1.x) + CameraX) / DRAW_SIZE;
-			i32 y2 = ((Select1.y < Select2.y ? Select2.y : Select1.y) + CameraY) / DRAW_SIZE;
+			i32 x1 = (min(Select1.x, Select2.x) + CameraX) / DRAW_SIZE;
+			i32 y1 = (min(Select1.y, Select2.y) + CameraY) / DRAW_SIZE;
+			i32 x2 = (max(Select1.x, Select2.x) + CameraX) / DRAW_SIZE;
+			i32 y2 = (max(Select1.y, Select2.y) + CameraY) / DRAW_SIZE;
 			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 				if(!Units[i].Alive) continue;
 				Units[i].Selected = false;
@@ -54,8 +53,8 @@ void updateInterface() {
 			RectSelect = false;
 		}
 	} else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-		if(!RectSelect) Select1 = Select2 = GetMousePosition();
-		else Select2 = GetMousePosition();
+		if(!RectSelect) Select1 = GetMousePosition();
+		Select2 = GetMousePosition();
 		RectSelect = true;
 	} else if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Selected) {
 		RectSelect = false;
@@ -80,6 +79,10 @@ void updateInterface() {
 				Vector2 flow = getUnitFlow(i);
 				if(!flow.x && !flow.y) numUnmoveable++;
 			}
+		}
+		if(!numSelected) {
+			Selected = false;
+			return;
 		}
 		mid = Vector2Divide(mid, (Vector2){numSelected, numSelected});
 		Vector2 dir = Vector2Normalize(Vector2Subtract(mid, target));
@@ -110,18 +113,7 @@ void updateInterface() {
 }
 
 void beginDrawInterface() {
-	//i32 anim = (i32)(GetTime() * 10.0) % 8;
-	//if(anim >= 4) anim = 7-anim;
-	//
-	//Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
-	//mouse.x = (i32)mouse.x/DRAW_SIZE/8;
-	//mouse.y = (i32)mouse.y/DRAW_SIZE/8;
-	//DrawTexturePro(Interface, (Rectangle){anim*8,0,8,8}, 
-	//	toMapR(mouse.x, mouse.y), (Vector2){0}, 0.0, WHITE);
-
-	if(MoveAnim > 0 && !MoveTarget)
-		DrawTexturePro(Tileset, (Rectangle){128+(4-ceil(MoveAnim))*8,248,8,8}, 
-			toMapR(MoveX, MoveY), (Vector2){0}, 0.0, WHITE);
+	if(MoveAnim > 0 && !MoveTarget) drawTile(MoveX, MoveY, 20-ceil(MoveAnim), 31, 1.0);
 }
 
 void endDrawInterface() {
@@ -136,23 +128,18 @@ void endDrawInterface() {
 			i32 health = ((f32)Units[i].Health / (f32)Units[i].Type->MaxHealth) * 6.0;
 			i32 x = toMapX(Units[i].Position.x*8), y = toMapY(Units[i].Position.y*8-2);
 			Color color = GetColor(0x4ebe1eff);
-			if(health < 4.0) color = GetColor(0xbda81cff);
 			if(health < 2.0) color = GetColor(0xbd3c1cff);
+			else if(health < 4.0) color = GetColor(0xbda81cff);
 			DrawRectangle(x+3, y, 6*DRAW_SIZE, DRAW_SIZE, GetColor(0x00000080));
 			DrawRectangle(x+3, y, health*DRAW_SIZE, DRAW_SIZE, color);
 		}
 	}
 
-	if(MoveAnim > 0 && MoveTarget)
-		DrawTexturePro(Tileset, (Rectangle){160+(4-ceil(MoveAnim))*8,248,8,8}, 
-			toMapR(Units[MoveTarget].Position.x, Units[MoveTarget].Position.y), (Vector2){0}, 0.0, WHITE);
+	if(MoveAnim > 0 && MoveTarget) drawTileFree(Units[MoveTarget].Position, 24-ceil(MoveAnim), 31);
 
-	if(RectSelect) {
-		i32 x = Select1.x < Select2.x ? Select1.x : Select2.x;
-		i32 y = Select1.y < Select2.y ? Select1.y : Select2.y;
-		DrawRectangleLinesEx((Rectangle)
-			{x, y, abs(Select2.x-Select1.x), abs(Select2.y-Select1.y)}, 3, WHITE);
-	}
+	if(RectSelect)
+		DrawRectangleLinesEx((Rectangle){min(Select1.x, Select2.x), min(Select1.y, Select2.y), 
+			abs(Select2.x-Select1.x), abs(Select2.y-Select1.y)}, DRAW_SIZE, WHITE);
 
 	if(MoveAnim > 0) MoveAnim -= GetFrameTime() * 10.0;
 }

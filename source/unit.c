@@ -32,10 +32,10 @@ static void updateFlow(tMoveOrder *order) {
 
 	for(i32 i = 0; i < stackPtr; i++) {
 		u16 x = VisitX[i], y = VisitY[i], distance = VisitDist[i] + 1;
-		if(x > 0 && !Grid[x-1][y]) push(x-1, y, Grid[x-1][y] = distance);
-		if(y > 0 && !Grid[x][y-1]) push(x, y-1, Grid[x][y-1] = distance);
-		if(x < MAP_SIZE-1 && !Grid[x+1][y]) push(x+1, y, Grid[x+1][y] = distance);
-		if(y < MAP_SIZE-1 && !Grid[x][y+1]) push(x, y+1, Grid[x][y+1] = distance);	
+		if(x > 0          && !Grid[x-1][y]) push(x-1, y  , Grid[x-1][y] = distance);
+		if(y > 0          && !Grid[x][y-1]) push(x  , y-1, Grid[x][y-1] = distance);
+		if(x < MAP_SIZE-1 && !Grid[x+1][y]) push(x+1, y  , Grid[x+1][y] = distance);
+		if(y < MAP_SIZE-1 && !Grid[x][y+1]) push(x  , y+1, Grid[x][y+1] = distance);	
 	}
 
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
@@ -43,41 +43,39 @@ static void updateFlow(tMoveOrder *order) {
 			order->Flow[x][y] = (tFlow){0,0};
 			continue;
 		}
-		bool topValid = y < MAP_SIZE-1 && Grid[x][y-1] != 0xffff;
-		bool bottomValid = y < MAP_SIZE-1 && Grid[x][y+1] != 0xffff;
-		bool leftValid = x < MAP_SIZE-1 && Grid[x-1][y] != 0xffff;
-		bool rightValid = x < MAP_SIZE-1 && Grid[x+1][y] != 0xffff;
 		i32 cost = 0xffff;
+		bool top  = y > 0 && Grid[x][y-1] != cost, bottom = y < MAP_SIZE-1 && Grid[x][y+1] != cost;
+		bool left = x > 0 && Grid[x-1][y] != cost, right  = x < MAP_SIZE-1 && Grid[x+1][y] != cost;
 		order->Flow[x][y] = (tFlow){0,0};
-		if(topValid && Grid[x][y-1] < cost) {
+		if(top && Grid[x][y-1] < cost) {
 			cost = Grid[x][y-1];
 			order->Flow[x][y] = (tFlow){0,-1};
 		}
-		if(bottomValid && Grid[x][y+1] < cost) {
+		if(bottom && Grid[x][y+1] < cost) {
 			cost = Grid[x][y+1];
 			order->Flow[x][y] = (tFlow){0,+1};
 		}
-		if(leftValid && Grid[x-1][y] < cost) {
+		if(left && Grid[x-1][y] < cost) {
 			cost = Grid[x-1][y];
 			order->Flow[x][y] = (tFlow){-1,0};
 		}
-		if(rightValid && Grid[x+1][y] < cost) {
+		if(right && Grid[x+1][y] < cost) {
 			cost = Grid[x+1][y];
 			order->Flow[x][y] = (tFlow){+1,0};
 		}
-		if(topValid && leftValid && Grid[x-1][y-1] < cost) {
+		if(top && left && Grid[x-1][y-1] < cost) {
 			cost = Grid[x-1][y-1];
 			order->Flow[x][y] = (tFlow){-1,-1};
 		}
-		if(topValid && rightValid && Grid[x+1][y-1] < cost) {
+		if(top && right && Grid[x+1][y-1] < cost) {
 			cost = Grid[x+1][y-1];
 			order->Flow[x][y] = (tFlow){+1,-1};
 		}
-		if(bottomValid && leftValid && Grid[x-1][y+1] < cost) {
+		if(bottom && left && Grid[x-1][y+1] < cost) {
 			cost = Grid[x-1][y+1];
 			order->Flow[x][y] = (tFlow){-1,+1};
 		}
-		if(bottomValid && rightValid && Grid[x+1][y+1] < cost) {
+		if(bottom && right && Grid[x+1][y+1] < cost) {
 			cost = Grid[x+1][y+1];
 			order->Flow[x][y] = (tFlow){+1,+1};
 		}
@@ -117,19 +115,22 @@ void drawMoveOrder(tMoveOrder *order) {
 tUnit Units[MAX_UNITS];
 
 UnitHandle newUnit(tUnit unit) {
-	UnitHandle ret = 0;
-	for(UnitHandle i = 1; i < MAX_UNITS; i++)
-		if(!Units[i].Alive) ret = i;
-	Units[ret] = unit;
-	Units[ret].Animation = GetRandomValue(0, 3);
-	Units[ret].IdleTimer = GetTime() + GetRandomValue(-4000,4000) / 1000.0;
-	Units[ret].Alive = true;
-	if(!Units[ret].Health) Units[ret].Health = unit.Type->MaxHealth;
-	return ret;
+	for(UnitHandle i = 1; i < MAX_UNITS; i++) if(!Units[i].Alive) {
+		Units[i] = unit;
+		Units[i].Animation = GetRandomValue(0, 3);
+		Units[i].IdleTimer = GetTime() + GetRandomValue(-4000,4000) / 1000.0;
+		Units[i].Alive = true;
+		if(!Units[i].Health) Units[i].Health = unit.Type->MaxHealth;
+		return i;
+	}
+	return 0;
 }
 
-void removeUnit(UnitHandle unit) {
+static void killUnit(UnitHandle unit) {
 	Units[unit].Alive = false;
+	u32 x = round(Units[unit].Position.x), y = round(Units[unit].Position.y);
+	Map[x][y].Animation = 0xf0 + GetRandomValue(0, 1)*8; // Blood animation
+	Map[x][y].Frame = GetRandomValue(0, 1);
 }
 
 Vector2 getUnitFlow(UnitHandle unit) {
@@ -141,39 +142,32 @@ Vector2 getUnitFlow(UnitHandle unit) {
 	if(!Units[unit].MoveOrder) return (Vector2){0,0};
 
 	u32 x = floor(Units[unit].Position.x), y = floor(Units[unit].Position.y);
-	Vector2 m = getFlow(x,y), s = getFlow(x,y+1), e = getFlow(x+1,y), se = getFlow(x+1,y+1);
+	Vector2 m = getFlow(x, y), s = getFlow(x, y+1), e = getFlow(x+1, y), se = getFlow(x+1, y+1);
 	f32 xWeight = Units[unit].Position.x - (f32)x, yWeight = Units[unit].Position.y - (f32)y;
 
-	Vector2 top = Vector2Add(Vector2Scale(m, 1.0 - xWeight), Vector2Scale(e, xWeight));
+	Vector2 top    = Vector2Add(Vector2Scale(m, 1.0 - xWeight), Vector2Scale(e, xWeight));
 	Vector2 bottom = Vector2Add(Vector2Scale(s, 1.0 - xWeight), Vector2Scale(se, xWeight));
 
-	Vector2 move = Vector2Normalize
-		(Vector2Add(Vector2Scale(top, 1.0 - yWeight), Vector2Scale(bottom, yWeight)));
-	return move;
+	return Vector2Normalize(
+		Vector2Add(Vector2Scale(top, 1.0 - yWeight), Vector2Scale(bottom, yWeight)));
 }
 
 void drawUnits() {	
 	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 		if(!Units[i].Alive) continue;
 		if(Units[i].Player && !getSafe(Units[i].Position.x, Units[i].Position.y).Seen) continue;
+		i32 anim = 0, offset = 0;
 		switch(Units[i].Action) {
-		case ACTION_MOVE: {
-			i32 move = (Units[i].Animation + (i32)(GetTime() * Vector2Length(Units[i].Speed)*2.0)) % 4;
-			i32 anim = Units[i].Speed.x || Units[i].Speed.y ? move : 0;
-			DrawTexturePro(Sprites[Player[Units[i].Player].Color], 
-				(Rectangle){anim*8,Units[i].Direction*8,8,8}, 
-				toMapR(Units[i].Position.x, Units[i].Position.y), (Vector2){0}, 0.0, WHITE);
-			} break;
-		case ACTION_ATTACK: {
-			i32 anim = (Units[i].Animation + (i32)(GetTime() * 8.0)) % 4;
-			DrawTexturePro(Sprites[Player[Units[i].Player].Color], 
-				(Rectangle){anim*8,32 + Units[i].Direction*8,8,8}, 
-				toMapR(Units[i].Position.x, Units[i].Position.y), (Vector2){0}, 0.0, WHITE);
-			} break;
+		case ACTION_MOVE:
+			if(Units[i].Speed.x || Units[i].Speed.y)
+				anim = (Units[i].Animation + (i32)(GetTime()*Vector2Length(Units[i].Speed)*2.0));
+			break;
+		case ACTION_ATTACK:
+			anim = (Units[i].Animation + (i32)(GetTime() * 8.0));
+			offset = 4;
+			break;
 		}
-		//i32 anim2 = (unit->Animation + (i32)(GetTime() * 8.0)) % 4;
-		//DrawTexturePro(UnitSprites, (Rectangle){anim2*8,7*8,8,8}, 
-		//	toMapR(unit->Position.x, unit->Position.y), (Vector2){0}, 0.0, WHITE);
+		drawSprite(Units[i].Position, Units[i].Player, anim % 4, offset + Units[i].Direction);
 	}
 }
 
@@ -189,9 +183,7 @@ void updateUnits() {
 				}
 		}
 		if(Units[i].Health <= 0) {
-			Map[x][y].Animation = 0xf0 + GetRandomValue(0, 1)*8;
-			Map[x][y].Frame = GetRandomValue(0, 1);
-			removeUnit(i);
+			killUnit(i);
 			continue;
 		}
 		
@@ -204,7 +196,6 @@ void updateUnits() {
 			Vector2 axis = Vector2Subtract(Units[i].Position, Units[j].Position);
 			f32 dist = sqrtf((axis.x*axis.x) + (axis.y*axis.y));
 			if(dist < 0.8) {
-				//if(unit2->Player != unit->Player) unit->Speed = unit2->Speed = (Vector2){0};
 				Vector2 delta = Vector2Scale((Vector2){axis.x/dist,axis.y/dist}, 0.5*(0.8 - dist));
 				u32 x2 = round(Units[i].Position.x+delta.x), y2 = round(Units[i].Position.y+delta.y);
 				if(!getSafe(x2, y2).Move)
@@ -213,17 +204,17 @@ void updateUnits() {
 				if(!getSafe(x3, y3).Move && !Units[j].MoveOrder && Units[j].Player == Units[i].Player)
 					Units[j].Position = Vector2Subtract(Units[j].Position, delta);
 				bumbed = true;
-			} else if(dist < 1.4) {
-				if(Units[j].Player != Units[i].Player && !Units[i].Attack) {
-					Units[i].Speed = Vector2Scale(Units[i].Speed, 0.025);
-					Units[j].Speed = Vector2Scale(Units[j].Speed, 0.025);
+			} else if(dist < 1.4 && Units[j].Player != Units[i].Player) {
+				Units[i].Speed = Vector2Scale(Units[i].Speed, 0.75);
+				if(!Units[i].Attack) {
 					Units[i].Attack = j;
 					Units[i].Action = ACTION_ATTACK;
 				}
-			} else if(Units[j].Player != Units[i].Player && dist < Units[i].Type->ViewDistance) 
+			} else if(Units[j].Player != Units[i].Player && dist < Units[i].Type->ViewDistance*0.75) 
 				NextEnemy = j;
 		}
 
+		bool attacked = false;
 		if(Units[i].Attack) {
 			u32 x2 = round(Units[Units[i].Attack].Position.x);
 			u32 y2 = round(Units[Units[i].Attack].Position.y);
@@ -235,16 +226,17 @@ void updateUnits() {
 
 			Vector2 axis = Vector2Subtract(Units[i].Position, Units[Units[i].Attack].Position);
 			f32 dist = sqrtf((axis.x*axis.x) + (axis.y*axis.y));
-			f32 angle = fmod(2*PI + atan2(axis.y, axis.x), 2*PI);
+			f32 angle = fmod(2*PI + atan2(axis.y, axis.x), 2*PI); // Turn sprite to enemy unit
 			if     (angle >= PI/2*3.5 || angle < PI/2*0.5) Units[i].Direction = 3;
 			else if(angle >= PI/2*0.5 && angle < PI/2*1.5) Units[i].Direction = 2;
 			else if(angle >= PI/2*1.5 && angle < PI/2*2.5) Units[i].Direction = 1;
 			else if(angle >= PI/2*2.5 && angle < PI/2*3.5) Units[i].Direction = 0;
-			if(dist >= 1.4 || !Units[Units[i].Attack].Alive) {
+			if(dist >= 1.4 || !Units[Units[i].Attack].Alive) { // When enemy unit died
 				Units[i].Attack = 0;
 				Units[i].Action = ACTION_MOVE;
 			} else {
-				if(Units[i].AttackTimer < GetTime() - 0.6) {
+				attacked = true;
+				if(Units[i].AttackTimer < GetTime() - 0.6) { // Hurt enemy unit and play animation
 					Units[Units[i].Attack].Health -= Units[i].Type->Attack;
 					Units[i].AttackTimer = GetTime();
 				}
@@ -255,7 +247,7 @@ void updateUnits() {
 		Units[i].Position = Vector2Add(Units[i].Position, Units[i].Speed);
 		Vector2 movement = Vector2Subtract(Units[i].Position, oldPos);
 
-		if(fabsf(movement.x + movement.y) > 0.001) {
+		if(!attacked && (fabsf(movement.x) > 0.001 || fabsf(movement.y) > 0.001)) {
 			f32 angle = fmod(2*PI + atan2(movement.y, movement.x), 2*PI);
 			if     (angle >= PI/2*3.5 || angle < PI/2*0.5) Units[i].Direction = 1;
 			else if(angle >= PI/2*0.5 && angle < PI/2*1.5) Units[i].Direction = 0;
@@ -277,10 +269,8 @@ void updateUnits() {
 			moveUnit(i, NULL);
 			continue;
 		}
-		if(Units[i].Player && !Units[i].MoveOrder->Follow && NextEnemy) {
-			tMoveOrder *move = newMoveOrder((tMoveOrder){Follow: NextEnemy});
-			moveUnit(i, move);
-		}
+		if(Units[i].Player && !Units[i].MoveOrder->Follow && NextEnemy) // Enemy units autoattack
+			moveUnit(i, newMoveOrder((tMoveOrder){Follow: NextEnemy}));
 
 		updateMoveOrder(Units[i].MoveOrder);
 		Units[i].Speed = Vector2Scale(getUnitFlow(i), Units[i].Type->Speed - bumbed);
@@ -290,9 +280,8 @@ void updateUnits() {
 		if(Vector2Distance(Units[i].Position, Units[i].MoveOrder->Target) < dist) {
 			for(UnitHandle j = 1; j < MAX_UNITS; j++) {
 				if(!Units[j].Alive) continue;
-				if(Vector2Distance(Units[i].Position, Units[j].Position) < 3.0) {
-					if(i != j && Units[i].MoveOrder == Units[j].MoveOrder) moveUnit(j, NULL);
-				}
+				if(Vector2Distance(Units[i].Position, Units[j].Position) < 3.0 && 
+					i != j && Units[i].MoveOrder == Units[j].MoveOrder) moveUnit(j, NULL);
 			}
 			moveUnit(i, NULL);
 		}

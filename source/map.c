@@ -9,7 +9,7 @@ enum eTileset {
 	T_FLOOR = 0, T_FLOOR_END = 5,
 	T_FLOOR_FLAT = 0, T_FLOOR_FLAT_END = 3,
 	T_FLOOR_GROWN = 3, T_FLOOR_GROWN_END = 5,
-	T_TREE = 16,
+	T_TREE = 16, T_TREE2 = 32,
 	T_FOREST = 34,
 	T_WATER = 44,
 	T_MOUNTAIN = 64,
@@ -19,12 +19,12 @@ i32 CameraX, CameraY;
 tTile Map[MAP_SIZE][MAP_SIZE];
 Texture Tileset, Sprites[8];
 
-static void setSafe(u32 x, u32 y, tTile tile) {
-	if(x < MAP_SIZE && y < MAP_SIZE) Map[x][y] = tile;
-}
-
 static i32 choice(i32 x, i32 y) {
 	return GetRandomValue(0,1) == 0 ? x : y;
+}
+
+static void setSafe(u32 x, u32 y, tTile tile) {
+	if(x < MAP_SIZE && y < MAP_SIZE) Map[x][y] = tile;
 }
 
 tTile getSafe(u32 x, u32 y) {
@@ -40,13 +40,9 @@ i32 toMapY(f32 y) {
 	return y*DRAW_SIZE-CameraY;
 }
 
-Rectangle toMapR(f32 x, f32 y) {
-	return (Rectangle){x*8*DRAW_SIZE-CameraX,y*8*DRAW_SIZE-CameraY,8*DRAW_SIZE,8*DRAW_SIZE};
-}
-
 void createMap(u32 seed) {
-	#define IS_FLOOR(x) (x.Bottom >= 0 && x.Bottom <= 16)
-	#define IS_TREE(x) (x.Top == 16 || x.Top == 32 || x.Top == 48)
+	#define IS_FLOOR(x) (x.Bottom >= 0 && x.Bottom <= 15)
+	#define IS_TREE(x) (x.Top == T_TREE || x.Top == T_TREE2)
 	#define IS_FOREST(x) ((x.Bottom >= 16 && x.Bottom <= 63) || (x.Top >= 16 && x.Top <= 63))
 	#define IS_MOUNTAIN(x) ((x.Bottom >= 64 && x.Bottom <= 79) || (x.Top >= 64 && x.Top <= 79))
 
@@ -193,7 +189,6 @@ void createMap(u32 seed) {
 	}
 
 	SetRandomSeed(seed);
-	print("Seed: ", seed);
 
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
 		Map[x][y].Bottom = 0;
@@ -201,8 +196,7 @@ void createMap(u32 seed) {
 		f32 p = perlin(x*0.2, y*0.2, seed, 4);
 		if(p > 0.65) setSafe(x, y, (tTile){Top: T_MOUNTAIN, Move: 0xff});
 		else if(p > 0.6) setSafe(x, y, (tTile){Top: T_FOREST, Move: 0xff});
-		//else if(p > 0.6) setSafe(x, y, (tTile){Bottom: T_WATER, Move: 0xff});
-		else if(p > 0.55) setSafe(x, y, (tTile){Top: choice(16, 32), Move: 0xff});
+		else if(p > 0.55) setSafe(x, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 	}
 
 	placeCircle(16, 16, 8, (tTile){Bottom: T_FLOOR});
@@ -210,10 +204,8 @@ void createMap(u32 seed) {
 
 	for(i32 x = 0; x < MAP_SIZE/8; x++) for(i32 y = 0; y < MAP_SIZE/8; y++) // Random small trees
 		setSafe(x*8 + GetRandomValue(-3,3), y*8 + GetRandomValue(-3,3), 
-			(tTile){Top: choice(16, 32), Move: 0xff});
+			(tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 
-	//for(i32 x = 0; x < MAP_SIZE/4; x++) for(i32 y = 0; y < MAP_SIZE/4; y++)
-	//	placePatch(x*MAP_SIZE/4, y*MAP_SIZE/4, GetRandomValue(10,10));
 	placePath(8, 8, MAP_SIZE-8, MAP_SIZE-8, 3);
 
 	for(i32 i = 0; i < 2; i++) for(u32 x = 0; x < MAP_SIZE; x++) for(u32 y = 0; y < MAP_SIZE; y++) {
@@ -235,21 +227,21 @@ void createMap(u32 seed) {
 			{Top:    37, Move: 0xff}, // Left & Top (inner corner)
 		});
 		if(Map[x][y].Bottom != T_WATER) placeBorders(x, y, (tTile[15]){
-			{Bottom: T_WATER, Move: 0xff},
-			{Bottom: 43, Move: 0xff}, // Left
-			{Bottom: 45, Move: 0xff}, // Right
-			{Bottom: 28, Move: 0xff}, // Top
-			{Bottom: 60, Move: 0xff}, // Bottom
-			{Bottom: 27, Move: 0xff}, // Top Left (outer corner)
-			{Bottom: 29, Move: 0xff}, // Top Right (outer corner)
-			{Bottom: 59, Move: 0xff}, // Bottom Left (outer corner)
-			{Bottom: 61, Move: 0xff}, // Bottom Right (outer corner)
-			{Bottom: 62, Move: 0xff}, // Bottom Left & Top Right (diagonal)
-			{Bottom: 63, Move: 0xff}, // Bottom Right & Top Left (diagonal)
-			{Bottom: 30, Move: 0xff}, // Right & Bottom (inner corner)
-			{Bottom: 31, Move: 0xff}, // Left & Bottom (inner corner)
-			{Bottom: 46, Move: 0xff}, // Right & Top (inner corner)
-			{Bottom: 47, Move: 0xff}, // Left & Top (inner corner)
+			{Bottom: T_WATER,       Move: 0xff},
+			{Bottom: choice(25,43), Move: 0xff}, // Left
+			{Bottom: choice(41,45), Move: 0xff}, // Right
+			{Bottom: choice(26,28), Move: 0xff}, // Top
+			{Bottom: choice(58,60), Move: 0xff}, // Bottom
+			{Bottom: 27,            Move: 0xff}, // Top Left (outer corner)
+			{Bottom: 29,            Move: 0xff}, // Top Right (outer corner)
+			{Bottom: 59,            Move: 0xff}, // Bottom Left (outer corner)
+			{Bottom: 61,            Move: 0xff}, // Bottom Right (outer corner)
+			{Bottom: 62,            Move: 0xff}, // Bottom Left & Top Right (diagonal)
+			{Bottom: 63,            Move: 0xff}, // Bottom Right & Top Left (diagonal)
+			{Bottom: 30,            Move: 0xff}, // Right & Bottom (inner corner)
+			{Bottom: 31,            Move: 0xff}, // Left & Bottom (inner corner)
+			{Bottom: 46,            Move: 0xff}, // Right & Top (inner corner)
+			{Bottom: 47,            Move: 0xff}, // Left & Top (inner corner)
 		});
 	}
 
@@ -267,23 +259,22 @@ void createMap(u32 seed) {
 			bool ns = IS_TREE(nt), ss = IS_TREE(st), ws = IS_TREE(wt), es = IS_TREE(et);
 			if(n || s || w || e) {
 				if(!getSafe(x,y).Top && !ns && !ss && !ws && !es && GetRandomValue(0,4) == 0)
-					setSafe(x, y, (tTile){Top: choice(16, 32), Move: 0xff});
+					setSafe(x, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 				else Map[x][y].Bottom = GetRandomValue(T_FLOOR_FLAT, T_FLOOR_FLAT_END);
 			} else Map[x][y].Bottom = GetRandomValue(T_FLOOR_GROWN, T_FLOOR_GROWN_END);
 		}
 	}
 
 	for(u32 x = 1; x < MAP_SIZE-1; x++) for(u32 y = 1; y < MAP_SIZE-1; y++) {
-		// Fix diagonal holes to prevent pathfinding glitches
-		if(Map[x][y].Move == 0xff) {
+		if(Map[x][y].Move == 0xff) { // Fix diagonal holes to prevent pathfinding glitches
 			if(Map[x+1][y+1].Move == 0xff && !Map[x+1][y].Move && !Map[x][y+1].Move)
-				setSafe(x+1, y, (tTile){Top: choice(16, 32), Move: 0xff});
+				setSafe(x+1, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 			if(Map[x-1][y+1].Move == 0xff && !Map[x-1][y].Move && !Map[x][y+1].Move)
-				setSafe(x-1, y, (tTile){Top: choice(16, 32), Move: 0xff});
+				setSafe(x-1, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 			if(Map[x+1][y-1].Move == 0xff && !Map[x+1][y].Move && !Map[x][y-1].Move)
-				setSafe(x+1, y, (tTile){Top: choice(16, 32), Move: 0xff});
+				setSafe(x+1, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 			if(Map[x-1][y-1].Move == 0xff && !Map[x-1][y].Move && !Map[x][y-1].Move)
-				setSafe(x-1, y, (tTile){Top: choice(16, 32), Move: 0xff});
+				setSafe(x-1, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 		}
 		//Map[x][y].Seen = true;
 	}
@@ -301,13 +292,14 @@ void beginDrawMap() {
 	i32 anim = (i32)(GetTime() * 4.0) % 4;
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
 		if(!Map[x][y].Seen) continue;
-		i32 tx = Map[x][y].Bottom & 0x0f, ty = Map[x][y].Bottom >> 4;
-		if(tx >= 11 && ty >= 1 && ty <= 3) ty += anim * 3;
-		DrawTexturePro(Tileset, (Rectangle){tx*8,ty*8,8,8}, toMapR(x, y), (Vector2){0}, 0, WHITE);
+		u32 tx = Map[x][y].Bottom & 0x0f, ty = Map[x][y].Bottom >> 4;
+		if(tx >= 9 && ty >= 1 && ty <= 3) {
+			ty += anim * 3; // Water animation
+			Map[x][y].Blood = 0; // Disable blood in water
+		}
+		drawTile(x, y, tx, ty, 1.0);
 		if(Map[x][y].Blood) {
-			i32 bx = hash(x, y) % 12;
-			DrawTexturePro(Tileset, (Rectangle){bx*8,14*8,8,8}, toMapR(x, y), (Vector2){0}, 0, 
-				(Color){255,255,255,255.0*Map[x][y].Blood});
+			drawTile(x, y, hash(x, y) % 12, 14, Map[x][y].Blood);
 			Map[x][y].Blood -= GetFrameTime()*0.0125;
 			if(Map[x][y].Blood < 0) Map[x][y].Blood = 0;
 		}
@@ -316,24 +308,21 @@ void beginDrawMap() {
 
 void endDrawMap() {
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
-		if(Map[x][y].Top && Map[x][y].Seen) {
-			i32 tx = Map[x][y].Top & 0x0f, ty = Map[x][y].Top >> 4;
-			DrawTexturePro(Tileset, (Rectangle){tx*8,ty*8,8,8}, toMapR(x, y), (Vector2){0}, 0, WHITE);
-		}
+		if(Map[x][y].Top && Map[x][y].Seen)
+			drawTile(x, y, Map[x][y].Top & 0x0f, Map[x][y].Top >> 4, 1.0);
 		if(Map[x][y].Animation) {
-			i32 ax = (Map[x][y].Animation & 0x0f) + Map[x][y].Frame, ay = Map[x][y].Animation >> 4;
-			DrawTexturePro(Tileset, (Rectangle){ax*8,ay*8,8,8}, toMapR(x, y), (Vector2){0}, 0, WHITE);
+			u32 ax = (Map[x][y].Animation & 0x0f) + Map[x][y].Frame, ay = Map[x][y].Animation >> 4;
+			drawTile(x, y, ax, ay, 1.0);
 			Map[x][y].Frame += GetFrameTime() * 24.0;
 			if(Map[x][y].Frame >= 8) Map[x][y].Animation = 0;
 		}
 
 		const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
-		for(i32 i = 1; i < 3; i++) {
-			for(i32 j = 0; j < 8; j++) {
-				if(!getSafe(x+NX[j]*i, y+NY[j]*i).Seen) {
-					DrawRectangleRec(toMapR(x, y), (Color){0,0,0,92});
-					break;
-				}
+		for(i32 i = 1; i < 3; i++) for(i32 j = 0; j < 8; j++) { // Fog of war
+			if(!getSafe(x+NX[j]*i, y+NY[j]*i).Seen) {
+				DrawRectangle(x*8*DRAW_SIZE-CameraX, y*8*DRAW_SIZE-CameraY, 
+					8*DRAW_SIZE, 8*DRAW_SIZE, (Color){0,0,0,92});
+				break;
 			}
 		}
 	}

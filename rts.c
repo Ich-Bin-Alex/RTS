@@ -15,7 +15,7 @@ i32 main() {
 
 	for(i32 i = 0; i < 40; i++) {
 		Vector2 pos = {16.0 + GetRandomValue(-100, 100)/100.0,16.0 + GetRandomValue(-100, 100)/100.0};
-		newUnit((tUnit){Type: &Peasent, Selected: true, Position: pos});
+		newUnit((tUnit){Type: &Peasent, Position: pos});
 	}
 
 	for(i32 i = 0; i < 30; i++) {

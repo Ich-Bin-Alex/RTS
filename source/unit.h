@@ -58,7 +58,6 @@ typedef struct tUnit {
 extern tUnit Units[MAX_UNITS];
 
 UnitHandle newUnit(tUnit unit);
-void removeUnit(UnitHandle unit);
 Vector2 getUnitFlow(UnitHandle unit);
 void drawUnits();
 void updateUnits();

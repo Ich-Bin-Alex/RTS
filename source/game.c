@@ -40,11 +40,29 @@ void initGame() {
 		UnloadImage(sprites);
 	}
 
-	createMap(GetTime()*1000);
+	createMap(GetTime()*1000.0);
 
 	UnloadImage(img);
 }
 
 void updateGame() {
 	FrameCount++;
+}
+
+void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha) {
+	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8}, 
+		(Rectangle){x*8*DRAW_SIZE-CameraX,y*8*DRAW_SIZE-CameraY,8*DRAW_SIZE,8*DRAW_SIZE}, 
+		(Vector2){0}, 0, (Color){255,255,255,255.0*alpha});
+}
+
+void drawTileFree(Vector2 pos, u32 tx, u32 ty) {
+	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8}, 
+		(Rectangle){pos.x*8*DRAW_SIZE-CameraX,pos.y*8*DRAW_SIZE-CameraY,8*DRAW_SIZE,8*DRAW_SIZE}, 
+		(Vector2){0}, 0, WHITE);
+}
+
+void drawSprite(Vector2 pos, PlayerHandle player, u32 tx, u32 ty) {
+	DrawTexturePro(Sprites[Player[player].Color], (Rectangle){tx*8, ty*8, 8, 8},
+		(Rectangle){pos.x*8*DRAW_SIZE-CameraX,pos.y*8*DRAW_SIZE-CameraY,8*DRAW_SIZE,8*DRAW_SIZE}, 
+		(Vector2){0}, 0, WHITE);
 }

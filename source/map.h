@@ -5,7 +5,6 @@
 #include "source/map.h"
 
 #define MAP_SIZE 0x40
-#define DRAW_SIZE 3
 
 extern i32 CameraX, CameraY;
 
@@ -24,7 +23,6 @@ extern tTile Map[MAP_SIZE][MAP_SIZE];
 tTile getSafe(u32 x, u32 y);
 i32 toMapX(f32 x);
 i32 toMapY(f32 y);
-Rectangle toMapR(f32 x, f32 y);
 void createMap(u32 seed);
 void beginDrawMap();
 void endDrawMap();
