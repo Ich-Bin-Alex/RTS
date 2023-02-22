@@ -6,6 +6,8 @@
 #include "source/map.h"
 #include "source/unit.h"
 
+u32 NumMoveOrders, NumUnits;
+
 tUnitType Peasent = {
 	Name: "Peasent",
 	MaxHealth: 10,
@@ -89,8 +91,14 @@ tMoveOrder *newMoveOrder(tMoveOrder order) {
 	*ret = order;
 	ret->LastUpdate = FrameCount;
 	updateFlow(ret);
+	NumMoveOrders++;
 
 	return ret;
+}
+
+void freeMoveOrder(tMoveOrder *order) {
+	free(order);
+	NumMoveOrders--;
 }
 
 void updateMoveOrder(tMoveOrder *order) {
@@ -121,6 +129,7 @@ UnitHandle newUnit(tUnit unit) {
 		Units[i].IdleTimer = GetTime() + GetRandomValue(-4000,4000) / 1000.0;
 		Units[i].Alive = true;
 		if(!Units[i].Health) Units[i].Health = unit.Type->MaxHealth;
+		NumUnits++;
 		return i;
 	}
 	return 0;
@@ -131,6 +140,9 @@ static void killUnit(UnitHandle unit) {
 	u32 x = round(Units[unit].Position.x), y = round(Units[unit].Position.y);
 	Map[x][y].Animation = 0xf0 + GetRandomValue(0, 1)*8; // Blood animation
 	Map[x][y].Frame = GetRandomValue(0, 1);
+	if(Units[unit].MoveOrder)
+		if(--Units[unit].MoveOrder->References <= 0) freeMoveOrder(Units[unit].MoveOrder);
+	NumUnits--;
 }
 
 Vector2 getUnitFlow(UnitHandle unit) {
@@ -254,8 +266,10 @@ void updateUnits() {
 			else if(angle >= PI/2*1.5 && angle < PI/2*2.5) Units[i].Direction = 3;
 			else if(angle >= PI/2*2.5 && angle < PI/2*3.5) Units[i].Direction = 2;
 		}
+		if(fabsf(movement.x) > 0.01 || fabsf(movement.y) > 0.01) Units[i].Unmoveable = 0;
 
 		if(!Units[i].MoveOrder) { // Idle animation
+			Units[i].Unmoveable = 0;
 			if(!NextEnemy && Units[i].IdleTimer < GetTime() - 8.0) {
 				Units[i].Direction = GetRandomValue(0,3);
 				Units[i].IdleTimer = GetTime() + GetRandomValue(-4000, 4000) / 1000.0;
@@ -265,6 +279,7 @@ void updateUnits() {
 				moveUnit(i, move);
 			} else continue;
 		}
+		Units[i].Unmoveable += fabsf(movement.x) < 0.01 && fabsf(movement.y) < 0.01;
 		if(Units[i].MoveOrder->Follow && !Units[Units[i].MoveOrder->Follow].Alive) {
 			moveUnit(i, NULL);
 			continue;
@@ -275,7 +290,7 @@ void updateUnits() {
 		updateMoveOrder(Units[i].MoveOrder);
 		Units[i].Speed = Vector2Scale(getUnitFlow(i), Units[i].Type->Speed - bumbed);
 
-		f32 dist = Units[i].MoveOrder->Follow ? 0.3 : 0.5 + bumbed;
+		f32 dist = Units[i].MoveOrder->Follow ? 0.3 : 0.5 + bumbed + (Units[i].Unmoveable > 20)*4;
 
 		if(Vector2Distance(Units[i].Position, Units[i].MoveOrder->Target) < dist) {
 			for(UnitHandle j = 1; j < MAX_UNITS; j++) {
@@ -291,7 +306,8 @@ void updateUnits() {
 void moveUnit(UnitHandle unit, tMoveOrder *order) {
 	if(order) order->References++;
 	if(Units[unit].MoveOrder)
-		if(--Units[unit].MoveOrder->References <= 0) free(Units[unit].MoveOrder);
+		if(--Units[unit].MoveOrder->References <= 0) freeMoveOrder(Units[unit].MoveOrder);
 	Units[unit].Speed = (Vector2){0};
 	Units[unit].MoveOrder = order;
+	Units[unit].Unmoveable = 0;
 }

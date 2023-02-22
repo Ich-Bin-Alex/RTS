@@ -22,7 +22,10 @@ typedef struct tMoveOrder {
 	tFlow Flow[MAP_SIZE][MAP_SIZE];
 } tMoveOrder;
 
+extern u32 NumMoveOrders;
+
 tMoveOrder *newMoveOrder(tMoveOrder order);
+void freeMoveOrder(tMoveOrder *order);
 void updateMoveOrder(tMoveOrder *order);
 void drawMoveOrder(tMoveOrder *order);
 
@@ -53,9 +56,11 @@ typedef struct tUnit {
 	tMoveOrder *MoveOrder;
 	f32 IdleTimer, AttackTimer;
 	u8 Direction, Animation;
+	u32 Unmoveable; // How many frames the unit didn't move. Used to prevent it from getting stuck
 } tUnit;
 
 extern tUnit Units[MAX_UNITS];
+extern u32 NumUnits;
 
 UnitHandle newUnit(tUnit unit);
 Vector2 getUnitFlow(UnitHandle unit);

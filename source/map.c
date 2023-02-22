@@ -17,12 +17,11 @@ enum eTileset {
 
 i32 CameraX, CameraY;
 tTile Map[MAP_SIZE][MAP_SIZE];
-Texture Tileset, Sprites[8];
 
 static const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
 
 static i32 choice(i32 x, i32 y) {
-	return GetRandomValue(0,1) == 0 ? x : y;
+	return GetRandomValue(0, 1) == 0 ? x : y;
 }
 
 static void setSafe(u32 x, u32 y, tTile tile) {
@@ -103,14 +102,8 @@ void createMap(u32 seed) {
 	void placePatch(u32 x, u32 y, tTile tile, i32 scale) {
 		for(i32 i = 0; i < scale; i++) {
 			setSafe(x, y, tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x+1, y  , tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x-1, y  , tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x  , y+1, tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x  , y-1, tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x+1, y+1, tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x-1, y+1, tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x+1, y-1, tile);
-			if(GetRandomValue(0, 100) < 50) setSafe(x-1, y-1, tile);
+			for(i32 j = 0; j < 8; j++)
+				if(GetRandomValue(0, 100) < 50) setSafe((i32)x+NX[j], (i32)y+NY[j], tile);
 			x = GetRandomValue(x-1, x+1);
 			y = GetRandomValue(y-1, y+1);
 		}

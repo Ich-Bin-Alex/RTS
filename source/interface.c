@@ -6,11 +6,24 @@
 #include "source/map.h"
 #include "source/unit.h"
 
+i32 CharSizes[0x80] = {[' '] = 4};
+
 static u32 MoveX, MoveY;
 static f32 MoveAnim;
 static bool RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
 static Vector2 Select1, Select2;
+static bool ShowDebug = true;
+
+static void drawText(char *text, i32 x, i32 y, Color color) {
+	const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
+	for(i32 i = 0; text[i]; i++) {
+		u32 tx = (text[i] - ' ') % 16, ty = 16 + (text[i] - ' ') / 16;
+		for(i32 j = 0; j < 8; j++) drawTileFixed(x+NX[j], y+NY[j], tx, ty, BLACK, 2); // Shadow
+		drawTileFixed(x, y, tx, ty, color, 2);
+		x += CharSizes[(u32)text[i]] * 2;
+	}
+}
 
 void updateInterface() {
 	static bool Selected = true;
@@ -18,10 +31,10 @@ void updateInterface() {
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
 
-	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 50) CameraX += 15;
-	else if(IsKeyDown(KEY_LEFT) || GetMouseX() <= 50) CameraX -= 15;
-	if(IsKeyDown(KEY_DOWN) || GetMouseY() >= height - 50) CameraY += 15;
-	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 50) CameraY -= 15;
+	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 50) CameraX += floor(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_LEFT) || GetMouseX() <= 50) CameraX -= floor(1000.0 * GetFrameTime());
+	if(IsKeyDown(KEY_DOWN) || GetMouseY() >= height - 50) CameraY += floor(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 50) CameraY -= floor(1000.0 * GetFrameTime());
 	if(CameraX < 0) CameraX = 0;
 	else if(CameraX > MAP_SIZE*8*DRAW_SIZE-width) CameraX = MAP_SIZE*8*DRAW_SIZE-width;
 	if(CameraY < 0) CameraY = 0;
@@ -109,7 +122,10 @@ void updateInterface() {
 		}
 
 		if(MoveX) MoveAnim = 4;
+		else if(move && move->References <= 0) freeMoveOrder(move);
 	}
+
+	if(IsKeyPressed(KEY_F3)) ShowDebug = 1 - ShowDebug;
 }
 
 void beginDrawInterface() {
@@ -122,16 +138,19 @@ void endDrawInterface() {
 	UnitUnderMouse = 0;
 	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 		if(!Units[i].Alive) continue;
-		if(!UnitUnderMouse && x > Units[i].Position.x*8 && x < Units[i].Position.x*8+8 &&
-		   y > Units[i].Position.y*8 && y < Units[i].Position.y*8+8) UnitUnderMouse = i;
+		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
+		if(!UnitUnderMouse && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
+			UnitUnderMouse = i;
+			if(Units[i].Player && !Map[(u32)x2][(u32)y2].Seen) UnitUnderMouse = 0;
+		}
 		if(Units[i].Selected || UnitUnderMouse == i) {
 			i32 health = ((f32)Units[i].Health / (f32)Units[i].Type->MaxHealth) * 6.0;
-			i32 x = toMapX(Units[i].Position.x*8), y = toMapY(Units[i].Position.y*8-2);
+			i32 x3 = toMapX(Units[i].Position.x*8), y3 = toMapY(Units[i].Position.y*8-2);
 			Color color = GetColor(0x4ebe1eff);
 			if(health < 2.0) color = GetColor(0xbd3c1cff);
 			else if(health < 4.0) color = GetColor(0xbda81cff);
-			DrawRectangle(x+3, y, 6*DRAW_SIZE, DRAW_SIZE, GetColor(0x00000080));
-			DrawRectangle(x+3, y, health*DRAW_SIZE, DRAW_SIZE, color);
+			DrawRectangle(x3+3, y3, 6*DRAW_SIZE, DRAW_SIZE, GetColor(0x00000080));
+			DrawRectangle(x3+3, y3, health*DRAW_SIZE, DRAW_SIZE, color);
 		}
 	}
 
@@ -142,4 +161,10 @@ void endDrawInterface() {
 			abs(Select2.x-Select1.x), abs(Select2.y-Select1.y)}, DRAW_SIZE, WHITE);
 
 	if(MoveAnim > 0) MoveAnim -= GetFrameTime() * 10.0;
+
+	if(ShowDebug) {
+		drawText(TextFormat("%d Units, %d Orders", NumUnits, NumMoveOrders), 
+			3, 3, GetColor(0xefefefff));
+		drawText(TextFormat("%d FPS", GetFPS()), 3, 23, GetColor(0xb2d37dff));
+	}
 }
