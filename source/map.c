@@ -19,6 +19,8 @@ i32 CameraX, CameraY;
 tTile Map[MAP_SIZE][MAP_SIZE];
 Texture Tileset, Sprites[8];
 
+static const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
+
 static i32 choice(i32 x, i32 y) {
 	return GetRandomValue(0,1) == 0 ? x : y;
 }
@@ -192,18 +194,14 @@ void createMap(u32 seed) {
 		else if(p > 0.55) setSafe(x, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 	}
 
-	const u32 waterX[4] = {1, 16, MAP_SIZE-16, MAP_SIZE-1};
-	const u32 waterY[4] = {1, MAP_SIZE-16, 16, MAP_SIZE-1};
-	for(i32 i = 0; i < 4; i++)
+	const u32 waterX[4] = {1,16,MAP_SIZE-16,MAP_SIZE-1}, waterY[4] = {1,MAP_SIZE-16,16,MAP_SIZE-1};
+	for(i32 i = 0; i < 4; i++) // Generate lakes
 		placePatch(waterX[i] + GetRandomValue(-16, 16), waterY[i] + GetRandomValue(-16, 16), 
 			(tTile){Bottom: T_WATER, Move: 0xff}, GetRandomValue(20, 40));
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
-		if(Map[x][y].Bottom == T_WATER) {
-			const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
-			for(i32 i = 1; i < 3; i++) for(i32 j = 0; j < 8; j++) { // Remove water/forest borders
-				if(getSafe(x+NX[j]*i, y+NY[j]*i).Bottom != T_WATER)
-					setSafe(x+NX[j]*i, y+NY[j]*i, (tTile){Bottom: T_FLOOR});
-			}
+		if(Map[x][y].Bottom == T_WATER) for(i32 i = 1; i < 3; i++) for(i32 j = 0; j < 8; j++) {
+			if(getSafe(x+NX[j]*i, y+NY[j]*i).Bottom != T_WATER) // Remove water/forest borders
+				setSafe(x+NX[j]*i, y+NY[j]*i, (tTile){Bottom: T_FLOOR});
 		}
 	}
 
@@ -325,7 +323,6 @@ void endDrawMap() {
 			if(Map[x][y].Frame >= 8) Map[x][y].Animation = 0;
 		}
 
-		const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
 		for(i32 i = 1; i < 3; i++) for(i32 j = 0; j < 8; j++) { // Fog of war
 			if(!getSafe(x+NX[j]*i, y+NY[j]*i).Seen) {
 				DrawRectangle(x*8*DRAW_SIZE-CameraX, y*8*DRAW_SIZE-CameraY, 

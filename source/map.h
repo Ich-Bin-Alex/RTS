@@ -9,13 +9,12 @@
 extern i32 CameraX, CameraY;
 
 typedef struct tTile {
-	u8 Move;
-	u8 Bottom;
-	u8 Top;
+	u8 Move; // Movement costs, used by the pathfinding
+	u8 Bottom, Top;
 	u8 Animation;
-	f32 Blood;
 	f32 Frame;
-	bool Seen;
+	f32 Blood;
+	bool Seen; // Fog of war
 } tTile;
 
 extern tTile Map[MAP_SIZE][MAP_SIZE];
