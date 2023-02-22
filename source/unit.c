@@ -45,7 +45,7 @@ static void updateFlow(tMoveOrder *order) {
 			order->Flow[x][y] = (tFlow){0,0};
 			continue;
 		}
-		i32 cost = 0xffff;
+		u16 cost = 0xffff;
 		bool top  = y > 0 && Grid[x][y-1] != cost, bottom = y < MAP_SIZE-1 && Grid[x][y+1] != cost;
 		bool left = x > 0 && Grid[x-1][y] != cost, right  = x < MAP_SIZE-1 && Grid[x+1][y] != cost;
 		order->Flow[x][y] = (tFlow){0,0};
@@ -82,6 +82,8 @@ static void updateFlow(tMoveOrder *order) {
 			order->Flow[x][y] = (tFlow){+1,+1};
 		}
 	}
+
+	order->LastUpdate = FrameCount;
 }
 
 tMoveOrder *newMoveOrder(tMoveOrder order) {
@@ -89,7 +91,6 @@ tMoveOrder *newMoveOrder(tMoveOrder order) {
 
 	tMoveOrder *ret = calloc(sizeof(tMoveOrder), 1);
 	*ret = order;
-	ret->LastUpdate = FrameCount;
 	updateFlow(ret);
 	NumMoveOrders++;
 
@@ -102,8 +103,7 @@ void freeMoveOrder(tMoveOrder *order) {
 }
 
 void updateMoveOrder(tMoveOrder *order) {
-	if(!order->Follow || order->LastUpdate == FrameCount) return;
-
+	if(!order->Follow || FrameCount - order->LastUpdate < 20) return;
 	order->Target = Units[order->Follow].Position;
 	updateFlow(order);
 }
@@ -187,7 +187,7 @@ void updateUnits() {
 	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 		if(!Units[i].Alive) continue;
 		u32 x = round(Units[i].Position.x), y = round(Units[i].Position.y);
-		if(Units[i].Player == 0) {
+		if(Units[i].Player == 0) { // Clear fog of war
 			for(i32 yi = -Units[i].Type->ViewDistance; yi <= Units[i].Type->ViewDistance; yi++) 
 			for(i32 xi = -Units[i].Type->ViewDistance; xi <= Units[i].Type->ViewDistance; xi++)
 				if(xi*xi + yi*yi <= Units[i].Type->ViewDistance*Units[i].Type->ViewDistance) {
@@ -217,7 +217,7 @@ void updateUnits() {
 					Units[j].Position = Vector2Subtract(Units[j].Position, delta);
 				bumbed = true;
 			} else if(dist < 1.4 && Units[j].Player != Units[i].Player) {
-				Units[i].Speed = Vector2Scale(Units[i].Speed, 0.75);
+				Units[i].Speed = Vector2Scale(Units[i].Speed, 0.75); // Slow down fighting units
 				if(!Units[i].Attack) {
 					Units[i].Attack = j;
 					Units[i].Action = ACTION_ATTACK;
@@ -279,7 +279,6 @@ void updateUnits() {
 				moveUnit(i, move);
 			} else continue;
 		}
-		Units[i].Unmoveable += fabsf(movement.x) < 0.01 && fabsf(movement.y) < 0.01;
 		if(Units[i].MoveOrder->Follow && !Units[Units[i].MoveOrder->Follow].Alive) {
 			moveUnit(i, NULL);
 			continue;
@@ -289,7 +288,7 @@ void updateUnits() {
 
 		updateMoveOrder(Units[i].MoveOrder);
 		Units[i].Speed = Vector2Scale(getUnitFlow(i), Units[i].Type->Speed - bumbed);
-
+		Units[i].Unmoveable += fabsf(movement.x) < 0.01 && fabsf(movement.y) < 0.01;
 		f32 dist = Units[i].MoveOrder->Follow ? 0.3 : 0.5 + bumbed + (Units[i].Unmoveable > 20)*4;
 
 		if(Vector2Distance(Units[i].Position, Units[i].MoveOrder->Target) < dist) {
