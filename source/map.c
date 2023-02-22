@@ -98,26 +98,19 @@ void createMap(u32 seed) {
 		return fin/div;
 	}
 
-	void placePatch(u32 x, u32 y, i32 scale) {
+	void placePatch(u32 x, u32 y, tTile tile, i32 scale) {
 		for(i32 i = 0; i < scale; i++) {
-			i32 chance = 50;
-			if(x < MAP_SIZE && y < MAP_SIZE) {
-				Map[x][y].Top = T_FOREST;
-				if(x+1 < MAP_SIZE && GetRandomValue(0,100) < chance) Map[x+1][y].Top = T_FOREST;
-				if(x-1 < MAP_SIZE && GetRandomValue(0,100) < chance) Map[x-1][y].Top = T_FOREST;
-				if(y+1 < MAP_SIZE && GetRandomValue(0,100) < chance) Map[x][y+1].Top = T_FOREST;
-				if(y-1 < MAP_SIZE && GetRandomValue(0,100) < chance) Map[x][y-1].Top = T_FOREST;
-				if(x+1 < MAP_SIZE && y+1 < MAP_SIZE && GetRandomValue(0,100) < chance) 
-					Map[x+1][y+1].Top = T_FOREST;
-				if(x-1 < MAP_SIZE && y+1 < MAP_SIZE && GetRandomValue(0,100) < chance) 
-					Map[x-1][y+1].Top = T_FOREST;
-				if(x+1 < MAP_SIZE && y-1 < MAP_SIZE && GetRandomValue(0,100) < chance) 
-					Map[x+1][y-1].Top = T_FOREST;
-				if(x-1 < MAP_SIZE && y-1 < MAP_SIZE && GetRandomValue(0,100) < chance) 
-					Map[x-1][y-1].Top = T_FOREST;
-			}
-			x = GetRandomValue(x-1,x+1);
-			y = GetRandomValue(y-1,y+1);
+			setSafe(x, y, tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x+1, y  , tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x-1, y  , tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x  , y+1, tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x  , y-1, tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x+1, y+1, tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x-1, y+1, tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x+1, y-1, tile);
+			if(GetRandomValue(0, 100) < 50) setSafe(x-1, y-1, tile);
+			x = GetRandomValue(x-1, x+1);
+			y = GetRandomValue(y-1, y+1);
 		}
 	}
 
@@ -199,11 +192,26 @@ void createMap(u32 seed) {
 		else if(p > 0.55) setSafe(x, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 	}
 
+	const u32 waterX[4] = {1, 16, MAP_SIZE-16, MAP_SIZE-1};
+	const u32 waterY[4] = {1, MAP_SIZE-16, 16, MAP_SIZE-1};
+	for(i32 i = 0; i < 4; i++)
+		placePatch(waterX[i] + GetRandomValue(-16, 16), waterY[i] + GetRandomValue(-16, 16), 
+			(tTile){Bottom: T_WATER, Move: 0xff}, GetRandomValue(20, 40));
+	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
+		if(Map[x][y].Bottom == T_WATER) {
+			const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
+			for(i32 i = 1; i < 3; i++) for(i32 j = 0; j < 8; j++) { // Remove water/forest borders
+				if(getSafe(x+NX[j]*i, y+NY[j]*i).Bottom != T_WATER)
+					setSafe(x+NX[j]*i, y+NY[j]*i, (tTile){Bottom: T_FLOOR});
+			}
+		}
+	}
+
 	placeCircle(16, 16, 8, (tTile){Bottom: T_FLOOR});
 	placeCircle(MAP_SIZE-16, MAP_SIZE-16, 8, (tTile){Bottom: T_FLOOR});
 
 	for(i32 x = 0; x < MAP_SIZE/8; x++) for(i32 y = 0; y < MAP_SIZE/8; y++) // Random small trees
-		setSafe(x*8 + GetRandomValue(-3,3), y*8 + GetRandomValue(-3,3), 
+		setSafe(x*8 + GetRandomValue(-3, 3), y*8 + GetRandomValue(-3, 3), 
 			(tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 
 	placePath(8, 8, MAP_SIZE-8, MAP_SIZE-8, 3);
@@ -228,10 +236,10 @@ void createMap(u32 seed) {
 		});
 		if(Map[x][y].Bottom != T_WATER) placeBorders(x, y, (tTile[15]){
 			{Bottom: T_WATER,       Move: 0xff},
-			{Bottom: choice(25,43), Move: 0xff}, // Left
-			{Bottom: choice(41,45), Move: 0xff}, // Right
+			{Bottom: choice(57,43), Move: 0xff}, // Left
+			{Bottom: choice(58,45), Move: 0xff}, // Right
 			{Bottom: choice(26,28), Move: 0xff}, // Top
-			{Bottom: choice(58,60), Move: 0xff}, // Bottom
+			{Bottom: choice(42,60), Move: 0xff}, // Bottom
 			{Bottom: 27,            Move: 0xff}, // Top Left (outer corner)
 			{Bottom: 29,            Move: 0xff}, // Top Right (outer corner)
 			{Bottom: 59,            Move: 0xff}, // Bottom Left (outer corner)
