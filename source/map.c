@@ -304,8 +304,10 @@ void beginDrawMap() {
 			Map[x][y].Blood = 0; // Disable blood in water
 		}
 		drawTile(x, y, tx, ty, 1.0);
-		if(Map[x][y].Blood) {
-			drawTile(x, y, hash(x, y) % 12, 14, Map[x][y].Blood);
+		if(Map[x][y].Blood) drawTile(x, y, hash(x, y) % 12, 14, Map[x][y].Blood);
+	}
+	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
+		if(Map[x][y].Blood) { // Fade out blood on the floor
 			Map[x][y].Blood -= GetFrameTime()*0.0125;
 			if(Map[x][y].Blood < 0) Map[x][y].Blood = 0;
 		}
