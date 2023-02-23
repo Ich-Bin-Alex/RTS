@@ -14,6 +14,7 @@ tUnitType Peasent = {
 	Attack: 1,
 	Speed: 4.0,
 	ViewDistance: 7,
+	CanChop: true, CanFarm: true, CanBuild: true
 };
 
 static void updateFlow(tMoveOrder *order) {
@@ -129,6 +130,7 @@ UnitHandle newUnit(tUnit unit) {
 		Units[i].IdleTimer = GetTime() + GetRandomValue(-4000,4000) / 1000.0;
 		Units[i].Alive = true;
 		if(!Units[i].Health) Units[i].Health = unit.Type->MaxHealth;
+		Player[unit.Player].Population++;
 		NumUnits++;
 		return i;
 	}
@@ -142,6 +144,7 @@ static void killUnit(UnitHandle unit) {
 	Map[x][y].Frame = GetRandomValue(0, 1);
 	if(Units[unit].MoveOrder)
 		if(--Units[unit].MoveOrder->References <= 0) freeMoveOrder(Units[unit].MoveOrder);
+	Player[Units[unit].Player].Population--;
 	NumUnits--;
 }
 
@@ -177,6 +180,14 @@ void drawUnits() {
 		case ACTION_ATTACK:
 			anim = (Units[i].Animation + (i32)(GetTime() * 8.0));
 			offset = 4;
+			break;
+		case ACTION_CHOP_TREE: // Reuse attack animation
+			anim = (Units[i].Animation + (i32)(GetTime() * 5.0));
+			offset = 4;
+			break;
+		case ACTION_FARM:
+			break;
+		case ACTION_BUILD:
 			break;
 		}
 		drawSprite(Units[i].Position, Units[i].Player, anim % 4, offset + Units[i].Direction);

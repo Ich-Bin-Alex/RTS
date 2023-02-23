@@ -5,7 +5,6 @@
 #include "source/game.h"
 
 u32 FrameCount = 0;
-
 tPlayer Player[8];
 Texture Tileset;
 

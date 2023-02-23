@@ -31,14 +31,14 @@ void updateInterface() {
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
 
-	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 50) CameraX += floor(1000.0 * GetFrameTime());
-	else if(IsKeyDown(KEY_LEFT) || GetMouseX() <= 50) CameraX -= floor(1000.0 * GetFrameTime());
-	if(IsKeyDown(KEY_DOWN) || GetMouseY() >= height - 50) CameraY += floor(1000.0 * GetFrameTime());
-	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 50) CameraY -= floor(1000.0 * GetFrameTime());
+	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 50) CameraX += round(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_LEFT) || GetMouseX() <= 50) CameraX -= round(1000.0 * GetFrameTime());
+	if(IsKeyDown(KEY_DOWN) || GetMouseY() >= height - 50) CameraY += round(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 50) CameraY -= round(1000.0 * GetFrameTime());
+	if(CameraX > MAP_SIZE*8*DRAW_SIZE-width) CameraX = MAP_SIZE*8*DRAW_SIZE-width;
 	if(CameraX < 0) CameraX = 0;
-	else if(CameraX > MAP_SIZE*8*DRAW_SIZE-width) CameraX = MAP_SIZE*8*DRAW_SIZE-width;
+	if(CameraY > MAP_SIZE*8*DRAW_SIZE-height) CameraY = MAP_SIZE*8*DRAW_SIZE-height;
 	if(CameraY < 0) CameraY = 0;
-	else if(CameraY > MAP_SIZE*8*DRAW_SIZE-height) CameraY = MAP_SIZE*8*DRAW_SIZE-height;
 
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 		Selected = RectSelect = false;
@@ -161,6 +161,14 @@ void endDrawInterface() {
 			abs(Select2.x-Select1.x), abs(Select2.y-Select1.y)}, DRAW_SIZE, WHITE);
 
 	if(MoveAnim > 0) MoveAnim -= GetFrameTime() * 10.0;
+
+	drawTileFixed(3, GetScreenHeight() - 80, 16, 29, WHITE, DRAW_SIZE);
+	drawText(TextFormat("%d/%d", Player[0].Population, Player[0].PopulationLimit),
+		30, GetScreenHeight() - 77, GetColor(0xefefefff));
+	drawTileFixed(3, GetScreenHeight() - 54, 17, 29, WHITE, DRAW_SIZE);
+	drawText(TextFormat("%d", Player[0].Food), 30, GetScreenHeight() - 51, GetColor(0xefefefff));
+	drawTileFixed(3, GetScreenHeight() - 28, 18, 29, WHITE, DRAW_SIZE);
+	drawText(TextFormat("%d", Player[0].Wood), 30, GetScreenHeight() - 25, GetColor(0xefefefff));
 
 	if(ShowDebug) {
 		drawText(TextFormat("%d Units, %d Orders", NumUnits, NumMoveOrders), 

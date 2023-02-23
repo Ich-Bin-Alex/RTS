@@ -8,6 +8,8 @@
 typedef struct tPlayer {
 	Texture Sprites;
 	Color Color;
+	i32 Population, PopulationLimit;
+	i32 Food, Wood;
 } tPlayer;
 
 typedef u8 PlayerHandle;

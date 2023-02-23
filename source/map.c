@@ -18,6 +18,8 @@ enum eTileset {
 i32 CameraX, CameraY;
 tTile Map[MAP_SIZE][MAP_SIZE];
 
+static i32 StartDrawX, StartDrawY, EndDrawX, EndDrawY;
+
 static const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
 
 static i32 choice(i32 x, i32 y) {
@@ -288,8 +290,13 @@ void beginDrawMap() {
 		return 1103515245 * (qx ^ (qy >> 3));
 	}
 
+	StartDrawX = max(0, CameraX/DRAW_SIZE/8);
+	StartDrawY = max(0, CameraY/DRAW_SIZE/8);
+	EndDrawX = min(MAP_SIZE, (GetScreenWidth() + CameraX)/DRAW_SIZE/8 + 1);
+	EndDrawY = min(MAP_SIZE, (GetScreenHeight() + CameraY)/DRAW_SIZE/8 + 1);
+
 	i32 anim = (i32)(GetTime() * 4.0) % 4;
-	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
+	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
 		if(!Map[x][y].Seen) continue;
 		u32 tx = Map[x][y].Bottom & 0x0f, ty = Map[x][y].Bottom >> 4;
 		if(tx >= 9 && ty >= 1 && ty <= 3) {
@@ -306,7 +313,7 @@ void beginDrawMap() {
 }
 
 void endDrawMap() {
-	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
+	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
 		if(Map[x][y].Top && Map[x][y].Seen)
 			drawTile(x, y, Map[x][y].Top & 0x0f, Map[x][y].Top >> 4, 1.0);
 		if(Map[x][y].Animation) {
