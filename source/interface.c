@@ -8,11 +8,10 @@
 
 i32 CharSizes[0x80] = {[' '] = 4};
 
-static u32 MoveX, MoveY;
 static f32 MoveAnim;
 static bool RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
-static Vector2 Select1, Select2;
+static Vector2 Select1, Select2, MovePos;
 static bool ShowDebug = true;
 
 static void drawText(char *text, i32 x, i32 y, Color color) {
@@ -23,6 +22,12 @@ static void drawText(char *text, i32 x, i32 y, Color color) {
 		drawTileFixed(x, y, tx, ty, color, 2);
 		x += CharSizes[(u32)text[i]] * 2;
 	}
+}
+
+static i32 measureText(char *text) {
+	i32 length = 0;
+	for(i32 i = 0; text[i]; i++) length += CharSizes[(u32)text[i]] * 2;
+	return length;
 }
 
 void updateInterface() {
@@ -71,22 +76,22 @@ void updateInterface() {
 		RectSelect = true;
 	} else if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Selected) {
 		RectSelect = false;
-		MoveX = mouse.x/DRAW_SIZE/8;
-		MoveY = mouse.y/DRAW_SIZE/8;
-		Vector2 target = {round((f32)MoveX-0.5), round((f32)MoveY-0.5)};
+		MovePos = (Vector2){mouse.x / DRAW_SIZE / 8.0, mouse.y / DRAW_SIZE / 8.0};
 		tMoveOrder *move;
 		MoveTarget = 0;
 		if(UnitUnderMouse && Units[UnitUnderMouse].Player) {
 			MoveTarget = UnitUnderMouse;
-			move = newMoveOrder((tMoveOrder){Target: target, Follow: MoveTarget});
+			move = newMoveOrder((tMoveOrder){Target: MovePos, Follow: MoveTarget});
 		} else
-			move = newMoveOrder((tMoveOrder){Target: target});
+			move = newMoveOrder((tMoveOrder){Target: MovePos});
 		i32 numSelected = 0, numUnmoveable = 0;
 		Vector2 mid = {0};
+		bool canChop = true;
 		for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 			if(!Units[i].Alive) continue;
 			if(Units[i].Selected) {
 				mid = Vector2Add(mid, Units[i].Position);
+				if(!Units[i].Type->CanChop) canChop = false;
 				moveUnit(i, move);
 				numSelected++;
 				Vector2 flow = getUnitFlow(i);
@@ -98,13 +103,14 @@ void updateInterface() {
 			return;
 		}
 		mid = Vector2Divide(mid, (Vector2){numSelected, numSelected});
-		Vector2 dir = Vector2Normalize(Vector2Subtract(mid, target));
+		Vector2 dir = Vector2Normalize(Vector2Subtract(mid, MovePos));
 
+		canChop = canChop && isTree(MovePos.x, MovePos.y);
 		// Search for valid position, in case the desired position is unreachable
-		while(numSelected == numUnmoveable || getSafe(MoveX, MoveY).Move == 0xff) {
+		while(numSelected == numUnmoveable || getSafe(MovePos.x, MovePos.y).Move == 0xff) {
 			numUnmoveable = 0;
-			target = Vector2Add(target, dir);
-			move = newMoveOrder((tMoveOrder){Target: target});
+			MovePos = Vector2Add(MovePos, dir);
+			move = newMoveOrder((tMoveOrder){Target: MovePos});
 			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 				if(!Units[i].Alive) continue;
 				if(Units[i].Selected) {
@@ -113,15 +119,13 @@ void updateInterface() {
 					if(!flow.x && !flow.y) numUnmoveable++;
 				}
 			}
-			MoveX = target.x;
-			MoveY = target.y;
-			if(MoveX >= MAP_SIZE || MoveY >= MAP_SIZE) {
-				MoveX = MoveY = 0;
+			if(MovePos.x >= MAP_SIZE || MovePos.y >= MAP_SIZE) {
+				MovePos = (Vector2){0};
 				break;
 			}
 		}
 
-		if(MoveX) MoveAnim = 4;
+		if(MovePos.x) MoveAnim = 4;
 		else if(move && move->References <= 0) freeMoveOrder(move);
 	}
 
@@ -129,7 +133,8 @@ void updateInterface() {
 }
 
 void beginDrawInterface() {
-	if(MoveAnim > 0 && !MoveTarget) drawTile(MoveX, MoveY, 20-ceil(MoveAnim), 31, 1.0);
+	if(MoveAnim > 0 && !MoveTarget)
+		drawTileFree((Vector2){MovePos.x-0.5, MovePos.y-0.5}, 20-ceil(MoveAnim), 31);
 }
 
 void endDrawInterface() {
@@ -162,17 +167,23 @@ void endDrawInterface() {
 
 	if(MoveAnim > 0) MoveAnim -= GetFrameTime() * 10.0;
 
-	drawTileFixed(3, GetScreenHeight() - 80, 16, 29, WHITE, DRAW_SIZE);
-	drawText(TextFormat("%d/%d", Player[0].Population, Player[0].PopulationLimit),
-		30, GetScreenHeight() - 77, GetColor(0xefefefff));
-	drawTileFixed(3, GetScreenHeight() - 54, 17, 29, WHITE, DRAW_SIZE);
-	drawText(TextFormat("%d", Player[0].Food), 30, GetScreenHeight() - 51, GetColor(0xefefefff));
-	drawTileFixed(3, GetScreenHeight() - 28, 18, 29, WHITE, DRAW_SIZE);
-	drawText(TextFormat("%d", Player[0].Wood), 30, GetScreenHeight() - 25, GetColor(0xefefefff));
+	char *text = TextFormat("%d/%d", Player[0].Population, Player[0].PopulationLimit);
+	drawText(text, GetScreenWidth() - measureText(text) - 33, 6, GetColor(0xefefefff));
+	drawTileFixed(GetScreenWidth() - 27, 3, 16, 29, WHITE, DRAW_SIZE);
+
+	text = TextFormat("%d", Player[0].Food);
+	drawText(text, GetScreenWidth() - measureText(text) - 33, 32, GetColor(0xefefefff));
+	drawTileFixed(GetScreenWidth() - 27, 29, 17, 29, WHITE, DRAW_SIZE);
+
+	text = TextFormat("%d", Player[0].Wood);
+	drawText(text, GetScreenWidth() - measureText(text) - 33, 58, GetColor(0xefefefff));
+	drawTileFixed(GetScreenWidth() - 27, 55, 18, 29, WHITE, DRAW_SIZE);
 
 	if(ShowDebug) {
 		drawText(TextFormat("%d Units, %d Orders", NumUnits, NumMoveOrders), 
 			3, 3, GetColor(0xefefefff));
 		drawText(TextFormat("%d FPS", GetFPS()), 3, 23, GetColor(0xb2d37dff));
 	}
+
+	drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DRAW_SIZE);
 }

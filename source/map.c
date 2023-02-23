@@ -35,6 +35,12 @@ tTile getSafe(u32 x, u32 y) {
 	return Map[x][y];
 }
 
+bool isTree(u32 x, u32 y) {
+	tTile tile = getSafe(x, y);
+	return (tile.Top == T_TREE || tile.Top == T_TREE2) ||
+	       ((tile.Bottom >= 16 && tile.Bottom <= 63) || (tile.Top >= 16 && tile.Top <= 63));
+}
+
 i32 toMapX(f32 x) {
 	return x*DRAW_SIZE-CameraX;
 }
@@ -316,13 +322,14 @@ void beginDrawMap() {
 
 void endDrawMap() {
 	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
-		if(Map[x][y].Top && Map[x][y].Seen)
-			drawTile(x, y, Map[x][y].Top & 0x0f, Map[x][y].Top >> 4, 1.0);
-		if(Map[x][y].Animation) {
-			u32 ax = (Map[x][y].Animation & 0x0f) + Map[x][y].Frame, ay = Map[x][y].Animation >> 4;
-			drawTile(x, y, ax, ay, 1.0);
-			Map[x][y].Frame += GetFrameTime() * 24.0;
-			if(Map[x][y].Frame >= 8) Map[x][y].Animation = 0;
+		if(Map[x][y].Seen){
+			if(Map[x][y].Top) drawTile(x, y, Map[x][y].Top & 0x0f, Map[x][y].Top >> 4, 1.0);
+			if(Map[x][y].Animation) {
+				u32 tx = (Map[x][y].Animation & 0x0f) + Map[x][y].Frame, ty = Map[x][y].Animation >> 4;
+				drawTile(x, y, tx, ty, 1.0);
+				Map[x][y].Frame += GetFrameTime() * (Map[x][y].Animation <= 0xef ? 16.0 : 24.0);
+				if(Map[x][y].Frame >= 8) Map[x][y].Animation = 0;
+			}
 		}
 
 		for(i32 i = 1; i < 3; i++) for(i32 j = 0; j < 8; j++) { // Fog of war

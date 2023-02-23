@@ -20,6 +20,7 @@ typedef struct tTile {
 extern tTile Map[MAP_SIZE][MAP_SIZE];
 
 tTile getSafe(u32 x, u32 y);
+bool isTree(u32 x, u32 y);
 i32 toMapX(f32 x);
 i32 toMapY(f32 y);
 void createMap(u32 seed);

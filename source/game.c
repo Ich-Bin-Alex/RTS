@@ -33,6 +33,7 @@ void initGame() {
 
 	createMap(GetTime()*1000.0);
 
+	HideCursor();
 	UnloadImage(img);
 }
 
