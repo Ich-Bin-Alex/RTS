@@ -41,7 +41,7 @@ typedef struct tUnitType {
 typedef enum eAction {
 	ACTION_MOVE,
 	ACTION_ATTACK,
-	ACTION_CHOP_TREE,
+	ACTION_CHOP_TREE, ACTION_MOVE_AND_CHOP,
 	ACTION_FARM,
 	ACTION_BUILD
 } eAction;
@@ -53,12 +53,21 @@ typedef struct tUnit {
 	tUnitType *Type;
 	eAction Action;
 	PlayerHandle Player;
-	UnitHandle Attack;
 	Vector2 Position, Speed;
 	bool Selected;
 	i32 Health;
 	tMoveOrder *MoveOrder;
-	f32 IdleTimer, AttackTimer;
+	f32 IdleTimer;
+	union {
+		struct {
+			f32 Timer;
+			UnitHandle Unit;
+		} Attack;
+		struct {
+			f32 Timer, Distance;
+			u32 TreeX, TreeY;
+		} Chop;
+	};
 	u8 Direction, Animation;
 	u32 Unmoveable; // How many frames the unit didn't move. Used to prevent it from getting stuck
 } tUnit;

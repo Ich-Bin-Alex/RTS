@@ -63,3 +63,7 @@ void drawSprite(Vector2 pos, PlayerHandle player, u32 tx, u32 ty) {
 		(Rectangle){pos.x*8*DRAW_SIZE-CameraX, pos.y*8*DRAW_SIZE-CameraY, 8*DRAW_SIZE, 8*DRAW_SIZE}, 
 		(Vector2){0}, 0, WHITE);
 }
+
+i32 choice(i32 x, i32 y) {
+	return GetRandomValue(0, 1) == 0 ? x : y;
+}

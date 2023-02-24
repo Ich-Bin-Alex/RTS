@@ -22,11 +22,11 @@ i32 main() {
 		Vector2 pos = {MAP_SIZE-16.0 + GetRandomValue(-100, 100)/100.0,MAP_SIZE-16.0 + GetRandomValue(-100, 100)/100.0};
 		newUnit((tUnit){Type: &Peasent, Player: 7, Position: pos});
 	}
-	tMoveOrder *move = newMoveOrder((tMoveOrder){AttackOnSight: true, Target: {16.0, 16.0}});
+	//tMoveOrder *move = newMoveOrder((tMoveOrder){AttackOnSight: true, Target: {16.0, 16.0}});
 	for(i32 i = 0; i < 10; i++) {
 		Vector2 pos = {MAP_SIZE-16.0 + GetRandomValue(-100, 100)/100.0,MAP_SIZE-16.0 + GetRandomValue(-100, 100)/100.0};
 		UnitHandle unit = newUnit((tUnit){Type: &Peasent, Player: 7, Position: pos});
-		moveUnit(unit, move);
+		//moveUnit(unit, move);
 	}
 
 	while(!WindowShouldClose()) {

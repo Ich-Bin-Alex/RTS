@@ -173,7 +173,7 @@ void drawUnits() {
 		if(Units[i].Player && !getSafe(Units[i].Position.x, Units[i].Position.y).Seen) continue;
 		i32 anim = 0, offset = 0;
 		switch(Units[i].Action) {
-		case ACTION_MOVE:
+		case ACTION_MOVE: case ACTION_MOVE_AND_CHOP:
 			if(Units[i].Speed.x || Units[i].Speed.y)
 				anim = (Units[i].Animation + (i32)(GetTime()*Vector2Length(Units[i].Speed)*2.0));
 			break;
@@ -182,8 +182,19 @@ void drawUnits() {
 			offset = 4;
 			break;
 		case ACTION_CHOP_TREE: // Reuse attack animation
-			anim = (Units[i].Animation + (i32)(GetTime() * 5.0));
-			offset = 4;
+			if(Units[i].Chop.Distance >= 0.8) {
+				//anim = (Units[i].Animation + (i32)(GetTime()*Vector2Length(Units[i].Speed)*2.0));
+				anim = (Units[i].Animation + (i32)(GetTime()*4.0));
+				break;
+			}
+			if(Units[i].Chop.TreeX) {
+				anim = (Units[i].Animation + (i32)(GetTime() * 5.0));
+				offset = 4;
+				if(anim % 4 == 0) {
+					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Animation = 0xd0;
+					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame = 0;
+				}
+			}
 			break;
 		case ACTION_FARM:
 			break;
@@ -229,8 +240,8 @@ void updateUnits() {
 				bumbed = true;
 			} else if(dist < 1.4 && Units[j].Player != Units[i].Player) {
 				Units[i].Speed = Vector2Scale(Units[i].Speed, 0.75); // Slow down fighting units
-				if(!Units[i].Attack) {
-					Units[i].Attack = j;
+				if(Units[i].Action != ACTION_ATTACK) {
+					Units[i].Attack.Unit = j;
 					Units[i].Action = ACTION_ATTACK;
 				}
 			} else if(Units[j].Player != Units[i].Player && dist < Units[i].Type->ViewDistance*0.75) 
@@ -238,32 +249,101 @@ void updateUnits() {
 		}
 
 		bool attacked = false;
-		if(Units[i].Attack) {
-			u32 x2 = round(Units[Units[i].Attack].Position.x);
-			u32 y2 = round(Units[Units[i].Attack].Position.y);
+		if(Units[i].Action == ACTION_ATTACK) {
+			u32 x2 = round(Units[Units[i].Attack.Unit].Position.x);
+			u32 y2 = round(Units[Units[i].Attack.Unit].Position.y);
 			if(x2 < MAP_SIZE && y2 < MAP_SIZE && !Map[x2][y2].Animation) { // Bloodsplatter animation
 				Map[x2][y2].Animation = 0xf0 + GetRandomValue(0, 1)*8;
 				Map[x2][y2].Frame = GetRandomValue(0, 1);
 				Map[x2][y2].Blood = 1.0;
 			}
 
-			Vector2 axis = Vector2Subtract(Units[i].Position, Units[Units[i].Attack].Position);
+			Vector2 axis = Vector2Subtract(Units[i].Position, Units[Units[i].Attack.Unit].Position);
 			f32 dist = sqrtf((axis.x*axis.x) + (axis.y*axis.y));
 			f32 angle = fmod(2*PI + atan2(axis.y, axis.x), 2*PI); // Turn sprite to enemy unit
 			if     (angle >= PI/2*3.5 || angle < PI/2*0.5) Units[i].Direction = 3;
 			else if(angle >= PI/2*0.5 && angle < PI/2*1.5) Units[i].Direction = 2;
 			else if(angle >= PI/2*1.5 && angle < PI/2*2.5) Units[i].Direction = 1;
 			else if(angle >= PI/2*2.5 && angle < PI/2*3.5) Units[i].Direction = 0;
-			if(dist >= 1.4 || !Units[Units[i].Attack].Alive) { // When enemy unit died
-				Units[i].Attack = 0;
+			if(dist >= 1.4 || !Units[Units[i].Attack.Unit].Alive) { // When enemy unit died
+				Units[i].Attack.Unit = 0;
 				Units[i].Action = ACTION_MOVE;
 			} else {
 				attacked = true;
-				if(Units[i].AttackTimer < GetTime() - 0.6) { // Hurt enemy unit and play animation
-					Units[Units[i].Attack].Health -= Units[i].Type->Attack;
-					Units[i].AttackTimer = GetTime();
+				if(Units[i].Attack.Timer < GetTime() - 0.6) { // Hurt enemy unit and play animation
+					Units[Units[i].Attack.Unit].Health -= Units[i].Type->Attack;
+					Units[i].Attack.Timer = GetTime();
 				}
 			}
+		} else if(Units[i].Action == ACTION_CHOP_TREE) {
+			i32 x2 = round(Units[i].Position.x), y2 = round(Units[i].Position.y);
+			if(!Units[i].Chop.TreeX) {
+				f32 closest = 1e30;
+				// NX/NY
+				for(i32 x3 = x2-1; x3 <= x2+1; x3++) for(i32 y3 = y2-1; y3 <= y2+1; y3++) {
+					if(isTree(x3, y3) && !getSafe(x3, y3).OccupiedTree && isReachable(x3, y3)) {
+						f32 dist = Vector2Distance(Units[i].Position, (Vector2){x3,y3});
+						if(dist < closest) {
+							closest = dist;
+							Units[i].Chop.TreeX = x3;
+							Units[i].Chop.TreeY = y3;
+						}
+					}
+				}
+			}
+			if(Units[i].Chop.TreeX)
+				Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].OccupiedTree = true;
+			else {
+				Units[i].Action = ACTION_MOVE_AND_CHOP;
+				goto lSearchTree;
+			}
+			Vector2 axis = Vector2Subtract(Units[i].Position,
+				(Vector2){Units[i].Chop.TreeX,Units[i].Chop.TreeY});
+			Units[i].Chop.Distance = Vector2Distance(Units[i].Position,
+				(Vector2){Units[i].Chop.TreeX,Units[i].Chop.TreeY});
+			f32 angle = fmod(2*PI + atan2(axis.y, axis.x), 2*PI); // Turn sprite to tree
+			if     (angle >= PI/2*3.5 || angle < PI/2*0.5) Units[i].Direction = 3;
+			else if(angle >= PI/2*0.5 && angle < PI/2*1.5) Units[i].Direction = 2;
+			else if(angle >= PI/2*1.5 && angle < PI/2*2.5) Units[i].Direction = 1;
+			else if(angle >= PI/2*2.5 && angle < PI/2*3.5) Units[i].Direction = 0;
+			if(Units[i].Chop.Timer < GetTime() - 5.0) {
+				Player[Units[i].Player].Wood++;
+				Units[i].Chop.Timer = GetTime();
+			}
+
+			if(Units[i].Chop.Distance > 0.8)
+				Units[i].Speed =
+					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
+			else
+				Units[i].Speed = (Vector2){0};
+		} else if(Units[i].Action == ACTION_MOVE_AND_CHOP) {
+			if(Units[i].Unmoveable > 10) {
+				lSearchTree:;
+				i32 x2 = round(Units[i].Position.x), y2 = round(Units[i].Position.y);
+				f32 closest = 1e30;
+				i32 treeX = 0, treeY = 0, dirX = choice(-1, +1), dirY = choice(-1, +1);
+				i32 radius = 3 + (Units[i].Unmoveable > 20)*3 + (Units[i].Unmoveable > 30)*3;
+				for(i32 x3 = x2-dirX*radius; x3 != x2+dirX*radius; x3 += dirX)
+				for(i32 y3 = y2-dirY*radius; y3 != y2+dirY*radius; y3 += dirY) {
+					if(isTree(x3, y3) && !getSafe(x3, y3).OccupiedTree && isReachable(x3, y3)) {
+						f32 dist = Vector2Distance(Units[i].Position, (Vector2){x3,y3});
+						if(dist < closest) {
+							closest = dist;
+							treeX = x3;
+							treeY = y3;
+						}
+					}
+				}
+				if(treeX) {
+					moveUnit(i, newMoveOrder((tMoveOrder){Target: (Vector2){treeX, treeY}}));
+					Vector2 flow = getUnitFlow(i);
+					if(!flow.x && !flow.y) {
+						Map[treeX][treeY].Unreachable = true;
+						moveUnit(i, NULL);
+					}
+				}
+			}
+			Units[i].Unmoveable += Units[i].MoveOrder == NULL;
 		}
 		
 		Units[i].Speed = Vector2Scale(Units[i].Speed, GetFrameTime());
@@ -280,7 +360,7 @@ void updateUnits() {
 		if(fabsf(movement.x) > 0.01 || fabsf(movement.y) > 0.01) Units[i].Unmoveable = 0;
 
 		if(!Units[i].MoveOrder) { // Idle animation
-			Units[i].Unmoveable = 0;
+			if(Units[i].Action != ACTION_MOVE_AND_CHOP) Units[i].Unmoveable = 0;
 			if(!NextEnemy && Units[i].IdleTimer < GetTime() - 8.0) {
 				Units[i].Direction = GetRandomValue(0,3);
 				Units[i].IdleTimer = GetTime() + GetRandomValue(-4000, 4000) / 1000.0;
@@ -300,13 +380,25 @@ void updateUnits() {
 		updateMoveOrder(Units[i].MoveOrder);
 		Units[i].Speed = Vector2Scale(getUnitFlow(i), Units[i].Type->Speed - bumbed);
 		Units[i].Unmoveable += fabsf(movement.x) < 0.01 && fabsf(movement.y) < 0.01;
-		f32 dist = Units[i].MoveOrder->Follow ? 0.3 : 0.5 + bumbed + (Units[i].Unmoveable > 20)*4;
+		f32 dist = 0.5;
+		if(Units[i].MoveOrder->Follow) dist = 0.3;
+		else {
+			if(bumbed) dist += 1.0;
+			if(Units[i].Unmoveable > 20) dist += 4.0;
+			if(Units[i].Action == ACTION_MOVE_AND_CHOP) dist = 1.0;
+		}
 
 		if(Vector2Distance(Units[i].Position, Units[i].MoveOrder->Target) < dist) {
-			for(UnitHandle j = 1; j < MAX_UNITS; j++) {
-				if(!Units[j].Alive) continue;
-				if(Vector2Distance(Units[i].Position, Units[j].Position) < 3.0 && 
-					i != j && Units[i].MoveOrder == Units[j].MoveOrder) moveUnit(j, NULL);
+			if(Units[i].Action == ACTION_MOVE_AND_CHOP) {
+				Units[i].Action = ACTION_CHOP_TREE;
+				Units[i].Chop.TreeX = Units[i].Chop.TreeY = 0;
+				Units[i].Chop.Timer = 0;
+			} else {
+				for(UnitHandle j = 1; j < MAX_UNITS; j++) {
+					if(!Units[j].Alive) continue;
+					if(Vector2Distance(Units[i].Position, Units[j].Position) < 3.0 &&
+						i != j && Units[i].MoveOrder == Units[j].MoveOrder) moveUnit(j, NULL);
+				}
 			}
 			moveUnit(i, NULL);
 		}
@@ -314,6 +406,8 @@ void updateUnits() {
 }
 
 void moveUnit(UnitHandle unit, tMoveOrder *order) {
+	if(Units[unit].Action == ACTION_CHOP_TREE && Units[unit].Chop.TreeX)
+		Map[Units[unit].Chop.TreeX][Units[unit].Chop.TreeY].OccupiedTree = false;
 	if(order) order->References++;
 	if(Units[unit].MoveOrder)
 		if(--Units[unit].MoveOrder->References <= 0) freeMoveOrder(Units[unit].MoveOrder);

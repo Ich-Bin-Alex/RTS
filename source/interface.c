@@ -12,10 +12,9 @@ static f32 MoveAnim;
 static bool RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
 static Vector2 Select1, Select2, MovePos;
-static bool ShowDebug = true;
+static bool ShowDebug = false;
 
 static void drawText(char *text, i32 x, i32 y, Color color) {
-	const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
 	for(i32 i = 0; text[i]; i++) {
 		u32 tx = (text[i] - ' ') % 16, ty = 16 + (text[i] - ' ') / 16;
 		for(i32 j = 0; j < 8; j++) drawTileFixed(x+NX[j], y+NY[j], tx, ty, BLACK, 2); // Shadow
@@ -83,16 +82,17 @@ void updateInterface() {
 			MoveTarget = UnitUnderMouse;
 			move = newMoveOrder((tMoveOrder){Target: MovePos, Follow: MoveTarget});
 		} else
-			move = newMoveOrder((tMoveOrder){Target: MovePos});
+			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
 		i32 numSelected = 0, numUnmoveable = 0;
 		Vector2 mid = {0};
-		bool canChop = true;
+		bool canChop = isTree(MovePos.x, MovePos.y);
 		for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 			if(!Units[i].Alive) continue;
 			if(Units[i].Selected) {
 				mid = Vector2Add(mid, Units[i].Position);
 				if(!Units[i].Type->CanChop) canChop = false;
 				moveUnit(i, move);
+				Units[i].Action = ACTION_MOVE;
 				numSelected++;
 				Vector2 flow = getUnitFlow(i);
 				if(!flow.x && !flow.y) numUnmoveable++;
@@ -105,12 +105,11 @@ void updateInterface() {
 		mid = Vector2Divide(mid, (Vector2){numSelected, numSelected});
 		Vector2 dir = Vector2Normalize(Vector2Subtract(mid, MovePos));
 
-		canChop = canChop && isTree(MovePos.x, MovePos.y);
 		// Search for valid position, in case the desired position is unreachable
 		while(numSelected == numUnmoveable || getSafe(MovePos.x, MovePos.y).Move == 0xff) {
 			numUnmoveable = 0;
 			MovePos = Vector2Add(MovePos, dir);
-			move = newMoveOrder((tMoveOrder){Target: MovePos});
+			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
 			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 				if(!Units[i].Alive) continue;
 				if(Units[i].Selected) {
@@ -122,6 +121,13 @@ void updateInterface() {
 			if(MovePos.x >= MAP_SIZE || MovePos.y >= MAP_SIZE) {
 				MovePos = (Vector2){0};
 				break;
+			}
+		}
+
+		if(canChop) {
+			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
+				if(!Units[i].Alive) continue;
+				if(Units[i].Selected) Units[i].Action = ACTION_MOVE_AND_CHOP;
 			}
 		}
 

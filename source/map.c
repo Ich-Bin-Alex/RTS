@@ -19,12 +19,7 @@ i32 CameraX, CameraY;
 tTile Map[MAP_SIZE][MAP_SIZE];
 
 static i32 StartDrawX, StartDrawY, EndDrawX, EndDrawY;
-
-static const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
-
-static i32 choice(i32 x, i32 y) {
-	return GetRandomValue(0, 1) == 0 ? x : y;
-}
+const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
 
 static void setSafe(u32 x, u32 y, tTile tile) {
 	if(x < MAP_SIZE && y < MAP_SIZE) Map[x][y] = tile;
@@ -38,7 +33,16 @@ tTile getSafe(u32 x, u32 y) {
 bool isTree(u32 x, u32 y) {
 	tTile tile = getSafe(x, y);
 	return (tile.Top == T_TREE || tile.Top == T_TREE2) ||
-	       ((tile.Bottom >= 16 && tile.Bottom <= 63) || (tile.Top >= 16 && tile.Top <= 63));
+	       (tile.Top >= 16 && tile.Top <= 21) || 
+	       (tile.Top >= 32 && tile.Top <= 37) || 
+	       (tile.Bottom >= 48 && tile.Bottom <= 53);
+}
+
+bool isReachable(u32 x, u32 y) {
+	if(getSafe(x, y).Unreachable) return false;
+	for(i32 i = 0; i < 8; i++)
+		if(!getSafe((i32)x + NX[i],(i32)y + NY[i]).Move) return true;
+	return false;
 }
 
 i32 toMapX(f32 x) {
