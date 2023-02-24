@@ -183,14 +183,14 @@ void drawUnits() {
 			break;
 		case ACTION_CHOP_TREE: // Reuse attack animation
 			if(Units[i].Chop.Distance >= 0.8) {
-				//anim = (Units[i].Animation + (i32)(GetTime()*Vector2Length(Units[i].Speed)*2.0));
-				anim = (Units[i].Animation + (i32)(GetTime()*4.0));
+				anim = (Units[i].Animation + (i32)(GetTime() * 4.0));
 				break;
 			}
 			if(Units[i].Chop.TreeX) {
 				anim = (Units[i].Animation + (i32)(GetTime() * 5.0));
 				offset = 4;
-				if(anim % 4 == 0) {
+				if(anim % 4 == 0 && (Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame >= 8 ||
+				                    !Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame)) {
 					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Animation = 0xd0;
 					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame = 0;
 				}
@@ -279,7 +279,6 @@ void updateUnits() {
 			i32 x2 = round(Units[i].Position.x), y2 = round(Units[i].Position.y);
 			if(!Units[i].Chop.TreeX) {
 				f32 closest = 1e30;
-				// NX/NY
 				for(i32 x3 = x2-1; x3 <= x2+1; x3++) for(i32 y3 = y2-1; y3 <= y2+1; y3++) {
 					if(isTree(x3, y3) && !getSafe(x3, y3).OccupiedTree && isReachable(x3, y3)) {
 						f32 dist = Vector2Distance(Units[i].Position, (Vector2){x3,y3});
@@ -314,8 +313,13 @@ void updateUnits() {
 			if(Units[i].Chop.Distance > 0.8)
 				Units[i].Speed =
 					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
-			else
+			else {
+				if(Units[i].Speed.x || Units[i].Speed.y) {
+					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Animation = 0xd0;
+					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame = 0;
+				}
 				Units[i].Speed = (Vector2){0};
+			}
 		} else if(Units[i].Action == ACTION_MOVE_AND_CHOP) {
 			if(Units[i].Unmoveable > 10) {
 				lSearchTree:;
@@ -379,7 +383,7 @@ void updateUnits() {
 
 		updateMoveOrder(Units[i].MoveOrder);
 		Units[i].Speed = Vector2Scale(getUnitFlow(i), Units[i].Type->Speed - bumbed);
-		Units[i].Unmoveable += fabsf(movement.x) < 0.01 && fabsf(movement.y) < 0.01;
+		Units[i].Unmoveable += fabsf(movement.x) < 0.1 && fabsf(movement.y) < 0.1;
 		f32 dist = 0.5;
 		if(Units[i].MoveOrder->Follow) dist = 0.3;
 		else {

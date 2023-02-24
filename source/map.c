@@ -32,10 +32,8 @@ tTile getSafe(u32 x, u32 y) {
 
 bool isTree(u32 x, u32 y) {
 	tTile tile = getSafe(x, y);
-	return (tile.Top == T_TREE || tile.Top == T_TREE2) ||
-	       (tile.Top >= 16 && tile.Top <= 21) || 
-	       (tile.Top >= 32 && tile.Top <= 37) || 
-	       (tile.Bottom >= 48 && tile.Bottom <= 53);
+	return (tile.Top == T_TREE || tile.Top == T_TREE2) || (tile.Top >= 16 && tile.Top <= 21) ||
+	       (tile.Top >= 32 && tile.Top <= 37) || (tile.Bottom >= 48 && tile.Bottom <= 53);
 }
 
 bool isReachable(u32 x, u32 y) {

@@ -16,7 +16,7 @@ typedef struct tTile {
 	f32 Frame;
 	f32 Blood;
 	bool Seen; // Fog of war
-	bool OccupiedTree;
+	bool OccupiedTree; // Used to prevent multiple units chopping the same tree
 	bool Unreachable;
 } tTile;
 
