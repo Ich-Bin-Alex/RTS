@@ -5,8 +5,8 @@
 
 extern i32 CharSizes[0x80];
 
-void updateInterface();
-void beginDrawInterface();
-void endDrawInterface();
+void updateInterface(void);
+void beginDrawInterface(void);
+void endDrawInterface(void);
 
 #endif

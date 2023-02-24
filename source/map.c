@@ -302,7 +302,7 @@ void createMap(u32 seed) {
 		Map[i][0].Move = Map[i][MAP_SIZE-1].Move = Map[0][i].Move = Map[MAP_SIZE-1][i].Move = 0xff;
 }
 
-void beginDrawMap() {
+void beginDrawMap(void) {
 	u32 hash(u32 x, u32 y) {
 		u32 qx = 1103515245 * ((x >> 1) ^ y), qy = 1103515245 * ((y >> 1) ^ x);
 		return 1103515245 * (qx ^ (qy >> 3));
@@ -332,7 +332,7 @@ void beginDrawMap() {
 	}
 }
 
-void endDrawMap() {
+void endDrawMap(void) {
 	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
 		if(Map[x][y].Seen) {
 			if(Map[x][y].Top) drawTile(x, y, Map[x][y].Top & 0x0f, Map[x][y].Top >> 4, 1.0);

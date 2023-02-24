@@ -171,7 +171,7 @@ Vector2 getUnitFlow(UnitHandle unit) {
 		Vector2Add(Vector2Scale(top, 1.0 - yWeight), Vector2Scale(bottom, yWeight)));
 }
 
-void drawUnits() {	
+void drawUnits(void) {
 	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 		if(!Units[i].Alive) continue;
 		if(Units[i].Player && !getSafe(Units[i].Position.x, Units[i].Position.y).Seen) continue;
@@ -209,7 +209,7 @@ void drawUnits() {
 	}
 }
 
-void updateUnits() {
+void updateUnits(void) {
 	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 		if(!Units[i].Alive) continue;
 		u32 x = round(Units[i].Position.x), y = round(Units[i].Position.y);
@@ -285,6 +285,7 @@ void updateUnits() {
 				}
 			}
 		} else if(Units[i].Action == ACTION_CHOP_TREE) {
+			Player[Units[i].Player].WoodIncrease++;
 			i32 x2 = round(Units[i].Position.x), y2 = round(Units[i].Position.y);
 			if(!Units[i].Chop.TreeX) {
 				f32 closest = 1e30;
@@ -385,6 +386,8 @@ void updateUnits() {
 				}
 			}
 			Units[i].Unmoveable += Units[i].MoveOrder == NULL;
+		} else if(Units[i].Action == ACTION_FARM) {
+			Player[Units[i].Player].FoodIncrease++;
 		}
 		
 		Units[i].Speed = Vector2Scale(Units[i].Speed, GetFrameTime());

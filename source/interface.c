@@ -29,7 +29,7 @@ static i32 measureText(char *text) {
 	return length;
 }
 
-void updateInterface() {
+void updateInterface(void) {
 	static bool Selected = true;
 
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
@@ -63,8 +63,8 @@ void updateInterface() {
 			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 				if(!Units[i].Alive) continue;
 				Units[i].Selected = false;
-				if(Units[i].Position.x*8+8 > x1 && Units[i].Position.x*8 < x2 &&
-				   Units[i].Position.y*8+8 > y1 && Units[i].Position.y*8 < y2 && !Units[i].Player)
+				if(Units[i].Position.x*8+4 > x1 && Units[i].Position.x*8 < x2 &&
+				   Units[i].Position.y*8+4 > y1 && Units[i].Position.y*8 < y2 && !Units[i].Player)
 					Units[i].Selected = Selected = true;
 			}
 			RectSelect = false;
@@ -143,12 +143,12 @@ void updateInterface() {
 	if(IsKeyPressed(KEY_F3)) ShowDebug = 1 - ShowDebug;
 }
 
-void beginDrawInterface() {
+void beginDrawInterface(void) {
 	if(MoveAnim > 0 && !MoveTarget)
 		drawTileFree((Vector2){MovePos.x-0.5, MovePos.y-0.5}, 20-ceil(MoveAnim), 31);
 }
 
-void endDrawInterface() {
+void endDrawInterface(void) {
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
 	i32 x = mouse.x/DRAW_SIZE, y = mouse.y/DRAW_SIZE;
 	UnitUnderMouse = 0;
@@ -178,16 +178,29 @@ void endDrawInterface() {
 
 	if(MoveAnim > 0) MoveAnim -= GetFrameTime() * 10.0;
 
+	i32 offset = 33;
 	char *text = TextFormat("%d/%d", Player[0].Population, Player[0].PopulationLimit);
-	drawText(text, GetScreenWidth() - measureText(text) - 33, 6, GetColor(0xefefefff));
+	drawText(text, GetScreenWidth() - measureText(text) - offset, 6, GetColor(0xefefefff));
 	drawTileFixed(GetScreenWidth() - 27, 3, 16, 29, WHITE, DRAW_SIZE);
 
 	text = TextFormat("%d", Player[0].Food);
-	drawText(text, GetScreenWidth() - measureText(text) - 33, 32, GetColor(0xefefefff));
+	offset = 33;
+	if(Player[0].FoodIncrease) {
+		char *inc = TextFormat("+%d", Player[0].FoodIncrease);
+		offset += measureText(inc);
+		drawText(inc, GetScreenWidth() - offset, 32, GetColor(0xb2d37dff));
+	}
+	drawText(text, GetScreenWidth() - measureText(text) - offset, 32, GetColor(0xefefefff));
 	drawTileFixed(GetScreenWidth() - 27, 29, 17, 29, WHITE, DRAW_SIZE);
 
 	text = TextFormat("%d", Player[0].Wood);
-	drawText(text, GetScreenWidth() - measureText(text) - 33, 58, GetColor(0xefefefff));
+	offset = 33;
+	if(Player[0].WoodIncrease) {
+		char *inc = TextFormat("+%d", Player[0].WoodIncrease);
+		offset += measureText(inc);
+		drawText(inc, GetScreenWidth() - offset, 58, GetColor(0xb2d37dff));
+	}
+	drawText(text, GetScreenWidth() - measureText(text) - offset, 58, GetColor(0xefefefff));
 	drawTileFixed(GetScreenWidth() - 27, 55, 18, 29, WHITE, DRAW_SIZE);
 
 	if(ShowDebug) {

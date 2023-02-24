@@ -78,8 +78,8 @@ extern u32 NumUnits;
 
 UnitHandle newUnit(tUnit unit);
 Vector2 getUnitFlow(UnitHandle unit);
-void drawUnits();
-void updateUnits();
+void drawUnits(void);
+void updateUnits(void);
 void moveUnit(UnitHandle unit, tMoveOrder *order);
 
 #endif

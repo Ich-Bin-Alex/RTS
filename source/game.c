@@ -8,7 +8,7 @@ u32 FrameCount = 0;
 tPlayer Player[8];
 Texture Tileset;
 
-void initGame() {
+void initGame(void) {
 	Image img = LoadImage(TextFormat("%s/data/tileset.png", GetApplicationDirectory()));
 	Tileset = LoadTextureFromImage(img);
 
@@ -37,8 +37,9 @@ void initGame() {
 	UnloadImage(img);
 }
 
-void updateGame() {
+void updateGame(void) {
 	FrameCount++;
+	for(i32 i = 0; i < 8; i++) Player[i].FoodIncrease = Player[i].WoodIncrease = 0;
 }
 
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha) {

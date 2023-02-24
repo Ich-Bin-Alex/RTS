@@ -9,7 +9,7 @@ typedef struct tPlayer {
 	Texture Sprites;
 	Color Color;
 	i32 Population, PopulationLimit;
-	i32 Food, Wood;
+	i32 Food, Wood, FoodIncrease, WoodIncrease;
 } tPlayer;
 
 typedef u8 PlayerHandle;
@@ -18,8 +18,8 @@ extern u32 FrameCount;
 extern tPlayer Player[8];
 extern Texture Tileset;
 
-void initGame();
-void updateGame();
+void initGame(void);
+void updateGame(void);
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha);
 void drawTileFixed(i32 x, i32 y, u32 tx, u32 ty, Color color, i32 scale);
 void drawTileFree(Vector2 pos, u32 tx, u32 ty);
