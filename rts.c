@@ -13,7 +13,7 @@ i32 main() {
 
 	initGame();
 
-	for(i32 i = 0; i < 30; i++) {
+	for(i32 i = 0; i < 10; i++) {
 		Vector2 pos = {16.0 + GetRandomValue(-100, 100)/100.0,16.0 + GetRandomValue(-100, 100)/100.0};
 		newUnit((tUnit){Type: &Peasent, Position: pos});
 	}

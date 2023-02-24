@@ -118,7 +118,7 @@ void updateInterface() {
 					if(!flow.x && !flow.y) numUnmoveable++;
 				}
 			}
-			if(MovePos.x >= MAP_SIZE || MovePos.y >= MAP_SIZE) {
+			if((u32)MovePos.x >= MAP_SIZE || (u32)MovePos.y >= MAP_SIZE) {
 				MovePos = (Vector2){0};
 				break;
 			}
@@ -127,7 +127,12 @@ void updateInterface() {
 		if(canChop) {
 			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
 				if(!Units[i].Alive) continue;
-				if(Units[i].Selected) Units[i].Action = ACTION_MOVE_AND_CHOP;
+				if(Units[i].Selected) {
+					Units[i].Action = ACTION_MOVE_AND_CHOP;
+					Units[i].Chop.IgnoreTreeX = Units[i].Chop.IgnoreTreeY = 0;
+					Units[i].Chop.SearchTreeX = MovePos.x;
+					Units[i].Chop.SearchTreeY = MovePos.y;
+				}
 			}
 		}
 

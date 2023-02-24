@@ -17,6 +17,7 @@ typedef struct tMoveOrder {
 	i32 References;
 	Vector2 Target;
 	UnitHandle Follow;
+	bool OnlySeen;
 	bool AttackOnSight;
 	u32 LastUpdate;
 	tFlow Flow[MAP_SIZE][MAP_SIZE];
@@ -65,7 +66,7 @@ typedef struct tUnit {
 		} Attack;
 		struct {
 			f32 Timer, Distance;
-			u32 TreeX, TreeY;
+			u32 TreeX, TreeY, IgnoreTreeX, IgnoreTreeY, SearchTreeX, SearchTreeY;
 		} Chop;
 	};
 	u8 Direction, Animation;

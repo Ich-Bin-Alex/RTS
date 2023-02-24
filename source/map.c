@@ -20,6 +20,7 @@ tTile Map[MAP_SIZE][MAP_SIZE];
 
 static i32 StartDrawX, StartDrawY, EndDrawX, EndDrawY;
 const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
+static const i32 DNX[4] = {-1,0,1,0}, DNY[4] = {0,-1,0,1};
 
 static void setSafe(u32 x, u32 y, tTile tile) {
 	if(x < MAP_SIZE && y < MAP_SIZE) Map[x][y] = tile;
@@ -272,6 +273,15 @@ void createMap(u32 seed) {
 				else Map[x][y].Bottom = GetRandomValue(T_FLOOR_FLAT, T_FLOOR_FLAT_END);
 			} else Map[x][y].Bottom = GetRandomValue(T_FLOOR_GROWN, T_FLOOR_GROWN_END);
 		}
+
+		if(isTree(x, y)) {
+			Map[x][y].MaxOccupy = 0;
+			for(i32 i = 0; i < 4; i++) {
+				if(!getSafe((i32)x+DNX[i], (i32)y+DNY[i]).Move) {
+					if(++Map[x][y].MaxOccupy >= 2) break;
+				}
+			}
+		}
 	}
 
 	for(u32 x = 1; x < MAP_SIZE-1; x++) for(u32 y = 1; y < MAP_SIZE-1; y++) {
@@ -324,7 +334,7 @@ void beginDrawMap() {
 
 void endDrawMap() {
 	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
-		if(Map[x][y].Seen){
+		if(Map[x][y].Seen) {
 			if(Map[x][y].Top) drawTile(x, y, Map[x][y].Top & 0x0f, Map[x][y].Top >> 4, 1.0);
 			if(Map[x][y].Animation) {
 				u32 tx = (Map[x][y].Animation & 0x0f) + Map[x][y].Frame, ty = Map[x][y].Animation >> 4;
