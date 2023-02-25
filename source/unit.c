@@ -182,7 +182,7 @@ Vector2 getUnitFlow(UnitHandle unit) {
 void drawUnits(void) {
 	forEachUnit(i) {
 		if(Units[i].Player && !getSafe(Units[i].Position.x, Units[i].Position.y).Seen) continue;
-		i32 anim = 0, offset = 0;
+		i32 anim = 0, offset = 0, direction = Units[i].Direction;
 		switch(Units[i].Action) {
 		case ACTION_MOVE: case ACTION_MOVE_AND_CHOP:
 			if(Units[i].Speed.x || Units[i].Speed.y)
@@ -208,11 +208,14 @@ void drawUnits(void) {
 			}
 			break;
 		case ACTION_FARM:
+			anim = (Units[i].Animation + (i32)(GetTime() * 6.0));
+			offset = 8;
+			direction = 0;
 			break;
 		case ACTION_BUILD:
 			break;
 		}
-		drawSprite(Units[i].Position, Units[i].Player, anim % 4, offset + Units[i].Direction);
+		drawSprite(Units[i].Position, Units[i].Player, anim % 4, offset + direction);
 	}
 }
 
