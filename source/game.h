@@ -2,6 +2,7 @@
 #define H_GAME
 
 #include "source/tools/helper.h"
+#include "source/tools/raylib.h"
 
 #define DRAW_SIZE 3
 
@@ -9,7 +10,7 @@ typedef struct tPlayer {
 	Texture Sprites;
 	Color Color;
 	i32 Population, PopulationLimit;
-	i32 Food, Wood, FoodIncrease, WoodIncrease;
+	i32 Food, Wood, FoodIncome, WoodIncome;
 } tPlayer;
 
 typedef u8 PlayerHandle;

@@ -85,17 +85,32 @@ void updateInterface(void) {
 		MovePos = (Vector2){mouse.x / DRAW_SIZE / 8.0, mouse.y / DRAW_SIZE / 8.0};
 		tMoveOrder *move;
 		MoveTarget = 0;
+		bool canChop = isTree(MovePos.x, MovePos.y);
+		bool canFarm = isFarm(MovePos.x, MovePos.y) &&
+			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Player &&
+			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Farm.Occupied;
 		if(UnitUnderMouse && Units[UnitUnderMouse].Player) {
 			MoveTarget = UnitUnderMouse;
 			move = newMoveOrder((tMoveOrder){Target: MovePos, Follow: MoveTarget});
-		} else
+		} else {
+			if(canFarm) {
+				Vector2 mid = {0};
+				i32 x = MovePos.x, y = MovePos.y;
+				BuildingHandle farm = getSafe(x, y).Building;
+				for(i32 xi = -2; xi < 2; xi++) for(i32 yi = -2; yi < 2; yi++) {
+					if(getSafe(x + xi, y + yi).Building == farm)
+						mid = Vector2Add(mid, (Vector2){x + xi, y + yi});
+				}
+				MovePos = Vector2Scale(mid, 0.25);
+			}
 			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
+		}
 		i32 numSelected = 0, numUnmoveable = 0;
 		Vector2 mid = {0};
-		bool canChop = isTree(MovePos.x, MovePos.y);
 		forEachUnit(i) if(Units[i].Selected) {
 			mid = Vector2Add(mid, Units[i].Position);
 			if(!Units[i].Type->CanChop) canChop = false;
+			if(!Units[i].Type->CanFarm) canFarm = false;
 			moveUnit(i, move);
 			Units[i].Action = ACTION_MOVE;
 			numSelected++;
@@ -111,6 +126,7 @@ void updateInterface(void) {
 
 		// Search for valid position, in case the desired position is unreachable
 		while(numSelected == numUnmoveable || getSafe(MovePos.x, MovePos.y).Move == 0xff) {
+			canFarm = false;
 			numUnmoveable = 0;
 			MovePos = Vector2Add(MovePos, dir);
 			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
@@ -131,6 +147,15 @@ void updateInterface(void) {
 				Units[i].Chop.IgnoreTreeX = Units[i].Chop.IgnoreTreeY = 0;
 				Units[i].Chop.SearchTreeX = MovePos.x;
 				Units[i].Chop.SearchTreeY = MovePos.y;
+			}
+		} else if(canFarm) {
+			tTile tile = getSafe(MovePos.x, MovePos.y);
+			forEachUnit(i) if(Units[i].Selected && !Buildings[tile.Building].Farm.Occupied) {
+				Units[i].Action = ACTION_MOVE_AND_FARM;
+				Units[i].Farm.Target = MovePos;
+				Units[i].Farm.Building = tile.Building;
+				Buildings[tile.Building].Farm.Occupied = true;
+				break;
 			}
 		}
 
@@ -184,8 +209,8 @@ void endDrawInterface(void) {
 
 	text = TextFormat("%d", Player[0].Food);
 	offset = 33;
-	if(Player[0].FoodIncrease) {
-		char *inc = TextFormat("+%d", Player[0].FoodIncrease);
+	if(Player[0].FoodIncome) {
+		char *inc = TextFormat("+%d", Player[0].FoodIncome);
 		offset += measureText(inc);
 		drawText(inc, GetScreenWidth() - offset, 32, GetColor(0xb2d37dff));
 	}
@@ -194,8 +219,8 @@ void endDrawInterface(void) {
 
 	text = TextFormat("%d", Player[0].Wood);
 	offset = 33;
-	if(Player[0].WoodIncrease) {
-		char *inc = TextFormat("+%d", Player[0].WoodIncrease);
+	if(Player[0].WoodIncome) {
+		char *inc = TextFormat("+%d", Player[0].WoodIncome);
 		offset += measureText(inc);
 		drawText(inc, GetScreenWidth() - offset, 58, GetColor(0xb2d37dff));
 	}

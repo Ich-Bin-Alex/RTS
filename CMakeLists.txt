@@ -36,6 +36,7 @@ add_executable(rts
 	source/game.c
 	source/map.c
 	source/unit.c
+	source/building.c
 	source/interface.c)
 
 target_link_libraries(rts raylib)

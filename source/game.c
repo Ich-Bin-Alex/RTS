@@ -39,7 +39,7 @@ void initGame(void) {
 
 void updateGame(void) {
 	FrameCount++;
-	for(i32 i = 0; i < 8; i++) Player[i].FoodIncrease = Player[i].WoodIncrease = 0;
+	for(i32 i = 0; i < 8; i++) Player[i].FoodIncome = Player[i].WoodIncome = 0;
 }
 
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha) {

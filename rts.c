@@ -4,6 +4,7 @@
 #include "source/game.h"
 #include "source/map.h"
 #include "source/unit.h"
+#include "source/building.h"
 #include "source/interface.h"
 
 i32 main() {
@@ -12,6 +13,8 @@ i32 main() {
 	SetTargetFPS(60);
 
 	initGame();
+
+	newBuilding((tBuilding){Type: &Farm}, 16, 16);
 
 	for(i32 i = 0; i < 10; i++) {
 		Vector2 pos = {16.0 + GetRandomValue(-100, 100)/100.0,16.0 + GetRandomValue(-100, 100)/100.0};

@@ -3,6 +3,7 @@
 
 #include "source/tools/helper.h"
 #include "source/map.h"
+#include "source/building.h"
 
 #define forEachUnit(x) for(UnitHandle x = 1; x < UnitPtr; x++) if(Units[x].Alive)
 
@@ -32,10 +33,10 @@ void drawMoveOrder(tMoveOrder *order);
 
 typedef struct tUnitType {
 	char Name[32];
-	u8 MaxHealth;
-	u8 Attack;
-	f32 Speed;
+	u32 MaxHealth;
+	u32 Attack;
 	i32 ViewDistance;
+	f32 Speed;
 	bool CanChop, CanFarm, CanBuild;
 } tUnitType;
 
@@ -43,7 +44,7 @@ typedef enum eAction {
 	ACTION_MOVE,
 	ACTION_ATTACK,
 	ACTION_CHOP_TREE, ACTION_MOVE_AND_CHOP,
-	ACTION_FARM,
+	ACTION_FARM, ACTION_MOVE_AND_FARM,
 	ACTION_BUILD
 } eAction;
 
@@ -68,6 +69,11 @@ typedef struct tUnit {
 			f32 Timer, Distance;
 			u32 TreeX, TreeY, IgnoreTreeX, IgnoreTreeY, SearchTreeX, SearchTreeY;
 		} Chop;
+		struct {
+			f32 Timer;
+			Vector2 Target;
+			BuildingHandle Building;
+		} Farm;
 	};
 	u8 Direction, Animation;
 	u32 Unmoveable; // How many frames the unit didn't move. Used to prevent it from getting stuck

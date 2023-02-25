@@ -22,7 +22,7 @@ static i32 StartDrawX, StartDrawY, EndDrawX, EndDrawY;
 const i32 NX[8] = {-1,-1,0,1,1,1,0,-1}, NY[8] = {0,-1,-1,-1,0,1,1,1};
 static const i32 DNX[4] = {-1,0,1,0}, DNY[4] = {0,-1,0,1};
 
-static void setSafe(u32 x, u32 y, tTile tile) {
+void setSafe(u32 x, u32 y, tTile tile) {
 	if(x < MAP_SIZE && y < MAP_SIZE) Map[x][y] = tile;
 }
 
@@ -35,6 +35,12 @@ bool isTree(u32 x, u32 y) {
 	tTile tile = getSafe(x, y);
 	return (tile.Top == T_TREE || tile.Top == T_TREE2) || (tile.Top >= 16 && tile.Top <= 21) ||
 	       (tile.Top >= 32 && tile.Top <= 37) || (tile.Bottom >= 48 && tile.Bottom <= 53);
+}
+
+bool isFarm(u32 x, u32 y) {
+	tTile tile = getSafe(x, y);
+	return (tile.Bottom == 0xa0 || tile.Bottom == 0xa1) ||
+	       (tile.Bottom == 0xb0 || tile.Bottom == 0xb1);
 }
 
 bool isReachable(u32 x, u32 y) {
