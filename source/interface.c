@@ -102,6 +102,7 @@ void updateInterface(void) {
 						mid = Vector2Add(mid, (Vector2){x + xi, y + yi});
 				}
 				MovePos = Vector2Scale(mid, 0.25);
+				MovePos.y -= 0.25;
 			}
 			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
 		}
@@ -150,12 +151,13 @@ void updateInterface(void) {
 			}
 		} else if(canFarm) {
 			tTile tile = getSafe(MovePos.x, MovePos.y);
-			forEachUnit(i) if(Units[i].Selected && !Buildings[tile.Building].Farm.Occupied) {
-				Units[i].Action = ACTION_MOVE_AND_FARM;
-				Units[i].Farm.Target = MovePos;
-				Units[i].Farm.Building = tile.Building;
-				Buildings[tile.Building].Farm.Occupied = true;
-				break;
+			forEachUnit(i) if(Units[i].Selected) {
+				if(!Buildings[tile.Building].Farm.Occupied) {
+					Units[i].Action = ACTION_MOVE_AND_FARM;
+					Units[i].Farm.Target = MovePos;
+					Units[i].Farm.Building = tile.Building;
+					Buildings[tile.Building].Farm.Occupied = true;
+				} else moveUnit(i, NULL);
 			}
 		}
 
@@ -175,7 +177,9 @@ void endDrawInterface(void) {
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
 	i32 x = mouse.x/DRAW_SIZE, y = mouse.y/DRAW_SIZE;
 	UnitUnderMouse = 0;
-	bool canChop = Selected && isTree(mouse.x / DRAW_SIZE / 8.0, mouse.y / DRAW_SIZE / 8.0);
+	bool canChop = Selected && isTree(x / 8.0, y / 8.0);
+	bool canFarm = Selected && isFarm(x / 8.0, y / 8.0) &&
+		!Buildings[getSafe(x / 8.0, y / 8.0).Building].Farm.Occupied;
 	forEachUnit(i) {
 		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
 		if(!UnitUnderMouse && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
@@ -183,6 +187,7 @@ void endDrawInterface(void) {
 			if(Units[i].Player && !Map[(u32)x2][(u32)y2].Seen) UnitUnderMouse = 0;
 		}
 		if(Units[i].Selected && !Units[i].Type->CanChop) canChop = false;
+		if(Units[i].Selected && !Units[i].Type->CanFarm) canFarm = false;
 		if(Units[i].Selected || UnitUnderMouse == i) {
 			i32 health = ((f32)Units[i].Health / (f32)Units[i].Type->MaxHealth) * 6.0;
 			i32 x3 = toMapX(Units[i].Position.x*8), y3 = toMapY(Units[i].Position.y*8-2);
@@ -236,5 +241,8 @@ void endDrawInterface(void) {
 	if(canChop) {
 		i32 anim = GetTime() * 5;
 		drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 21 + anim % 3, 30, WHITE, DRAW_SIZE);
-	} else drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DRAW_SIZE);
+	} else if(canFarm) {
+		i32 anim = GetTime() * 5;
+		drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 24 + anim % 3, 30, WHITE, DRAW_SIZE);
+	}else drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DRAW_SIZE);
 }
