@@ -4,7 +4,7 @@
 #include "source/tools/helper.h"
 #include "source/map.h"
 
-#define MAX_UNITS 200
+#define forEachUnit(x) for(UnitHandle x = 1; x < UnitPtr; x++) if(Units[x].Alive)
 
 typedef u32 UnitHandle;
 
@@ -73,8 +73,8 @@ typedef struct tUnit {
 	u32 Unmoveable; // How many frames the unit didn't move. Used to prevent it from getting stuck
 } tUnit;
 
-extern tUnit Units[MAX_UNITS];
-extern u32 NumUnits;
+extern tUnit *Units;
+extern u32 NumUnits, AllocatedUnits, UnitPtr;
 
 UnitHandle newUnit(tUnit unit);
 Vector2 getUnitFlow(UnitHandle unit);

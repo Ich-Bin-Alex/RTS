@@ -9,7 +9,7 @@
 i32 CharSizes[0x80] = {[' '] = 4};
 
 static f32 MoveAnim;
-static bool RectSelect = false;
+static bool Selected = false, RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
 static Vector2 Select1, Select2, MovePos;
 static bool ShowDebug = false;
@@ -23,6 +23,17 @@ static void drawText(char *text, i32 x, i32 y, Color color) {
 	}
 }
 
+static void drawTextAnimated(char *text, i32 x, i32 y, Color color[5]) {
+	i32 anim = (i32)(GetTime() * 10) % 10;
+	if(anim >= 5) anim = 9 - anim;
+	for(i32 i = 0; text[i]; i++) {
+		u32 tx = (text[i] - ' ') % 16, ty = 16 + (text[i] - ' ') / 16;
+		for(i32 j = 0; j < 8; j++) drawTileFixed(x+NX[j], y+NY[j], tx, ty, BLACK, 2); // Shadow
+		drawTileFixed(x, y, tx, ty, color[anim], 2);
+		x += CharSizes[(u32)text[i]] * 2;
+	}
+}
+
 static i32 measureText(char *text) {
 	i32 length = 0;
 	for(i32 i = 0; text[i]; i++) length += CharSizes[(u32)text[i]] * 2;
@@ -30,8 +41,6 @@ static i32 measureText(char *text) {
 }
 
 void updateInterface(void) {
-	static bool Selected = true;
-
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
 
@@ -47,8 +56,7 @@ void updateInterface(void) {
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 		Selected = RectSelect = false;
 		i32 x = mouse.x/DRAW_SIZE, y = mouse.y/DRAW_SIZE;
-		for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-			if(!Units[i].Alive) continue;
+		forEachUnit(i) {
 			Units[i].Selected = false;
 			if(x > Units[i].Position.x*8 && x < Units[i].Position.x*8+8 && !Units[i].Player &&
 			   y > Units[i].Position.y*8 && y < Units[i].Position.y*8+8 && !Selected)
@@ -60,8 +68,7 @@ void updateInterface(void) {
 			i32 y1 = (min(Select1.y, Select2.y) + CameraY) / DRAW_SIZE;
 			i32 x2 = (max(Select1.x, Select2.x) + CameraX) / DRAW_SIZE;
 			i32 y2 = (max(Select1.y, Select2.y) + CameraY) / DRAW_SIZE;
-			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-				if(!Units[i].Alive) continue;
+			forEachUnit(i) {
 				Units[i].Selected = false;
 				if(Units[i].Position.x*8+4 > x1 && Units[i].Position.x*8 < x2 &&
 				   Units[i].Position.y*8+4 > y1 && Units[i].Position.y*8 < y2 && !Units[i].Player)
@@ -86,17 +93,14 @@ void updateInterface(void) {
 		i32 numSelected = 0, numUnmoveable = 0;
 		Vector2 mid = {0};
 		bool canChop = isTree(MovePos.x, MovePos.y);
-		for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-			if(!Units[i].Alive) continue;
-			if(Units[i].Selected) {
-				mid = Vector2Add(mid, Units[i].Position);
-				if(!Units[i].Type->CanChop) canChop = false;
-				moveUnit(i, move);
-				Units[i].Action = ACTION_MOVE;
-				numSelected++;
-				Vector2 flow = getUnitFlow(i);
-				if(!flow.x && !flow.y) numUnmoveable++;
-			}
+		forEachUnit(i) if(Units[i].Selected) {
+			mid = Vector2Add(mid, Units[i].Position);
+			if(!Units[i].Type->CanChop) canChop = false;
+			moveUnit(i, move);
+			Units[i].Action = ACTION_MOVE;
+			numSelected++;
+			Vector2 flow = getUnitFlow(i);
+			if(!flow.x && !flow.y) numUnmoveable++;
 		}
 		if(!numSelected) {
 			Selected = false;
@@ -110,13 +114,10 @@ void updateInterface(void) {
 			numUnmoveable = 0;
 			MovePos = Vector2Add(MovePos, dir);
 			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
-			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-				if(!Units[i].Alive) continue;
-				if(Units[i].Selected) {
-					moveUnit(i, move);
-					Vector2 flow = getUnitFlow(i);
-					if(!flow.x && !flow.y) numUnmoveable++;
-				}
+			forEachUnit(i) if(Units[i].Selected) {
+				moveUnit(i, move);
+				Vector2 flow = getUnitFlow(i);
+				if(!flow.x && !flow.y) numUnmoveable++;
 			}
 			if((u32)MovePos.x >= MAP_SIZE || (u32)MovePos.y >= MAP_SIZE) {
 				MovePos = (Vector2){0};
@@ -125,14 +126,11 @@ void updateInterface(void) {
 		}
 
 		if(canChop) {
-			for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-				if(!Units[i].Alive) continue;
-				if(Units[i].Selected) {
-					Units[i].Action = ACTION_MOVE_AND_CHOP;
-					Units[i].Chop.IgnoreTreeX = Units[i].Chop.IgnoreTreeY = 0;
-					Units[i].Chop.SearchTreeX = MovePos.x;
-					Units[i].Chop.SearchTreeY = MovePos.y;
-				}
+			forEachUnit(i) if(Units[i].Selected) {
+				Units[i].Action = ACTION_MOVE_AND_CHOP;
+				Units[i].Chop.IgnoreTreeX = Units[i].Chop.IgnoreTreeY = 0;
+				Units[i].Chop.SearchTreeX = MovePos.x;
+				Units[i].Chop.SearchTreeY = MovePos.y;
 			}
 		}
 
@@ -152,13 +150,14 @@ void endDrawInterface(void) {
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
 	i32 x = mouse.x/DRAW_SIZE, y = mouse.y/DRAW_SIZE;
 	UnitUnderMouse = 0;
-	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-		if(!Units[i].Alive) continue;
+	bool canChop = Selected && isTree(mouse.x / DRAW_SIZE / 8.0, mouse.y / DRAW_SIZE / 8.0);
+	forEachUnit(i) {
 		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
 		if(!UnitUnderMouse && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
 			UnitUnderMouse = i;
 			if(Units[i].Player && !Map[(u32)x2][(u32)y2].Seen) UnitUnderMouse = 0;
 		}
+		if(Units[i].Selected && !Units[i].Type->CanChop) canChop = false;
 		if(Units[i].Selected || UnitUnderMouse == i) {
 			i32 health = ((f32)Units[i].Health / (f32)Units[i].Type->MaxHealth) * 6.0;
 			i32 x3 = toMapX(Units[i].Position.x*8), y3 = toMapY(Units[i].Position.y*8-2);
@@ -204,10 +203,13 @@ void endDrawInterface(void) {
 	drawTileFixed(GetScreenWidth() - 27, 55, 18, 29, WHITE, DRAW_SIZE);
 
 	if(ShowDebug) {
-		drawText(TextFormat("%d Units, %d Orders", NumUnits, NumMoveOrders), 
+		drawText(TextFormat("%d/%d Units, %d Orders", NumUnits, AllocatedUnits, NumMoveOrders),
 			3, 3, GetColor(0xefefefff));
 		drawText(TextFormat("%d FPS", GetFPS()), 3, 23, GetColor(0xb2d37dff));
 	}
 
-	drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DRAW_SIZE);
+	if(canChop) {
+		i32 anim = GetTime() * 5;
+		drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 21 + anim % 3, 30, WHITE, DRAW_SIZE);
+	} else drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DRAW_SIZE);
 }

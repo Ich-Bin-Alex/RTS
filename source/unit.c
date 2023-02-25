@@ -6,7 +6,7 @@
 #include "source/map.h"
 #include "source/unit.h"
 
-u32 NumMoveOrders, NumUnits;
+u32 NumMoveOrders, NumUnits, AllocatedUnits, UnitPtr;
 
 tUnitType Peasent = {
 	Name: "Peasent",
@@ -123,20 +123,28 @@ void drawMoveOrder(tMoveOrder *order) {
 	}
 }
 
-tUnit Units[MAX_UNITS];
+tUnit *Units;
 
 UnitHandle newUnit(tUnit unit) {
-	for(UnitHandle i = 1; i < MAX_UNITS; i++) if(!Units[i].Alive) {
-		Units[i] = unit;
-		Units[i].Animation = GetRandomValue(0, 3);
-		Units[i].IdleTimer = GetTime() + GetRandomValue(-4000,4000) / 1000.0;
-		Units[i].Alive = true;
-		if(!Units[i].Health) Units[i].Health = unit.Type->MaxHealth;
-		Player[unit.Player].Population++;
-		NumUnits++;
-		return i;
+	UnitHandle ret = 0;
+	for(UnitHandle i = 1; i < UnitPtr; i++) if(!Units[i].Alive) {
+		ret = i;
+		break;
 	}
-	return 0;
+	if(!ret) ret = ++UnitPtr;
+	if(UnitPtr >= AllocatedUnits) {
+		AllocatedUnits += 64;
+		Units = realloc(Units, AllocatedUnits*sizeof(tUnit));
+		memset(&Units[UnitPtr-1], 0, 64*sizeof(tUnit));
+	}
+	Units[ret] = unit;
+	Units[ret].Animation = GetRandomValue(0, 3);
+	Units[ret].IdleTimer = GetTime() + GetRandomValue(-4000,4000) / 1000.0;
+	Units[ret].Alive = true;
+	if(!Units[ret].Health) Units[ret].Health = unit.Type->MaxHealth;
+	Player[unit.Player].Population++;
+	NumUnits++;
+	return ret;
 }
 
 static void killUnit(UnitHandle unit) {
@@ -172,8 +180,7 @@ Vector2 getUnitFlow(UnitHandle unit) {
 }
 
 void drawUnits(void) {
-	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-		if(!Units[i].Alive) continue;
+	forEachUnit(i) {
 		if(Units[i].Player && !getSafe(Units[i].Position.x, Units[i].Position.y).Seen) continue;
 		i32 anim = 0, offset = 0;
 		switch(Units[i].Action) {
@@ -193,7 +200,7 @@ void drawUnits(void) {
 			if(Units[i].Chop.TreeX) {
 				anim = (Units[i].Animation + (i32)(GetTime() * 5.0));
 				offset = 4;
-				if(anim % 4 == 0 && (Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame >= 8 ||
+				if(anim % 4 == 2 && (Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame >= 8 ||
 				                    !Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame)) {
 					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Animation = 0xd0;
 					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame = 0;
@@ -210,8 +217,7 @@ void drawUnits(void) {
 }
 
 void updateUnits(void) {
-	for(UnitHandle i = 1; i < MAX_UNITS; i++) {
-		if(!Units[i].Alive) continue;
+	forEachUnit(i) {
 		u32 x = round(Units[i].Position.x), y = round(Units[i].Position.y);
 		if(Units[i].Player == 0) { // Clear fog of war
 			for(i32 yi = -Units[i].Type->ViewDistance; yi <= Units[i].Type->ViewDistance; yi++) 
@@ -229,8 +235,8 @@ void updateUnits(void) {
 		if(!Units[i].MoveOrder) Units[i].Speed = (Vector2){0};
 		Vector2 oldPos = Units[i].Position;
 		UnitHandle nextEnemy = 0;
-		for(UnitHandle j = 1; j < MAX_UNITS; j++) {
-			if(!Units[j].Alive || i == j) continue;
+		forEachUnit(j) {
+			if(i == j) continue;
 			Vector2 axis = Vector2Subtract(Units[i].Position, Units[j].Position);
 			f32 dist = sqrtf((axis.x*axis.x) + (axis.y*axis.y));
 			if(dist < 0.8) {
@@ -351,7 +357,6 @@ void updateUnits(void) {
 			} else if(Units[i].Unmoveable > 10) {
 				lSearchTree:;
 				i32 treeX = 0, treeY = 0, di = 1, dj = 0, segment = 1, passed = 0;
-				i32 occupy = 2 - (Units[i].Chop.IgnoreTreeX != 0);
 				i32 x2 = Units[i].Chop.SearchTreeX + GetRandomValue(-2, 2);
 				i32 y2 = Units[i].Chop.SearchTreeY + GetRandomValue(-2, 2);
 				for(i32 j = 0; j < 128; j++) { // Search in a spiral for reachable trees
@@ -437,8 +442,7 @@ void updateUnits(void) {
 
 		if(Vector2Distance(Units[i].Position, Units[i].MoveOrder->Target) < dist) {
 			f32 distToFriends = Units[i].Action == ACTION_MOVE_AND_CHOP ? 2.0 : 3.0;
-			for(UnitHandle j = 1; j < MAX_UNITS; j++) {
-				if(!Units[j].Alive) continue;
+			forEachUnit(j) {
 				if(Vector2Distance(Units[i].Position, Units[j].Position) < distToFriends &&
 				  i != j && Units[i].MoveOrder == Units[j].MoveOrder) {
 					moveUnit(j, NULL);
