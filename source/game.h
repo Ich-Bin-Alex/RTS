@@ -4,8 +4,6 @@
 #include "source/tools/helper.h"
 #include "source/tools/raylib.h"
 
-#define DRAW_SIZE 3
-
 typedef struct tPlayer {
 	Texture Sprites;
 	Color Color;
@@ -18,6 +16,8 @@ typedef u8 PlayerHandle;
 extern u32 FrameCount;
 extern tPlayer Player[8];
 extern Texture Tileset;
+extern i32 DrawSize, FontSize;
+extern Color TextColor, GoodColor, BadColor, HealthColor1, HealthColor2, HealthColor3;
 
 void initGame(void);
 void updateGame(void);

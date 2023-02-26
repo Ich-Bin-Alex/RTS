@@ -10,6 +10,7 @@
 i32 main() {
 	SetTraceLogLevel(LOG_WARNING);
 	InitWindow(1024, 768, "RTS");
+	SetWindowState(FLAG_WINDOW_RESIZABLE);
 	SetTargetFPS(60);
 
 	initGame();

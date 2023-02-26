@@ -7,10 +7,19 @@
 u32 FrameCount = 0;
 tPlayer Player[8];
 Texture Tileset;
+i32 DrawSize = 3, FontSize = 2;
+Color TextColor, GoodColor, BadColor, HealthColor1, HealthColor2, HealthColor3;
 
 void initGame(void) {
 	Image img = LoadImage(TextFormat("%s/data/tileset.png", GetApplicationDirectory()));
 	Tileset = LoadTextureFromImage(img);
+
+	TextColor = GetImageColor(img, 248, 248);
+	GoodColor = GetImageColor(img, 248, 249);
+	BadColor = GetImageColor(img, 248, 250);
+	HealthColor1 = GetImageColor(img, 249, 248);
+	HealthColor2 = GetImageColor(img, 249, 249);
+	HealthColor3 = GetImageColor(img, 249, 250);
 
 	for(i32 i = 0; i < 8; i++) {
 		Image sprites = ImageFromImage(img, (Rectangle){128,0,128,128});
@@ -40,11 +49,15 @@ void initGame(void) {
 void updateGame(void) {
 	FrameCount++;
 	for(i32 i = 0; i < 8; i++) Player[i].FoodIncome = Player[i].WoodIncome = 0;
+	if(IsWindowResized()) {
+		DrawSize = max(3, (GetScreenWidth() * GetScreenHeight()) / 262144);
+		FontSize = DrawSize - 1;
+	}
 }
 
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha) {
 	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8}, 
-		(Rectangle){x*8*DRAW_SIZE-CameraX, y*8*DRAW_SIZE-CameraY, 8*DRAW_SIZE, 8*DRAW_SIZE}, 
+		(Rectangle){x*8*DrawSize-CameraX, y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
 		(Vector2){0}, 0, (Color){255,255,255,255.0*alpha});
 }
 
@@ -55,13 +68,13 @@ void drawTileFixed(i32 x, i32 y, u32 tx, u32 ty, Color color, i32 scale) {
 
 void drawTileFree(Vector2 pos, u32 tx, u32 ty) {
 	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8}, 
-		(Rectangle){pos.x*8*DRAW_SIZE-CameraX, pos.y*8*DRAW_SIZE-CameraY, 8*DRAW_SIZE, 8*DRAW_SIZE}, 
+		(Rectangle){pos.x*8*DrawSize-CameraX, pos.y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
 		(Vector2){0}, 0, WHITE);
 }
 
 void drawSprite(Vector2 pos, PlayerHandle player, u32 tx, u32 ty) {
 	DrawTexturePro(Player[player].Sprites, (Rectangle){tx*8, ty*8, 8, 8},
-		(Rectangle){pos.x*8*DRAW_SIZE-CameraX, pos.y*8*DRAW_SIZE-CameraY, 8*DRAW_SIZE, 8*DRAW_SIZE}, 
+		(Rectangle){pos.x*8*DrawSize-CameraX, pos.y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
 		(Vector2){0}, 0, WHITE);
 }
 

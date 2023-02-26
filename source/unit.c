@@ -114,13 +114,13 @@ void updateMoveOrder(tMoveOrder *order) {
 
 void drawMoveOrder(tMoveOrder *order) {
 	if(!order) return;
-	DrawCircle(order->Target.x*8*DRAW_SIZE+4*DRAW_SIZE-CameraX, 
-		order->Target.y*8*DRAW_SIZE+4*DRAW_SIZE-CameraY, 4, RED);
+	DrawCircle(order->Target.x*8*DrawSize+4*DrawSize-CameraX,
+		order->Target.y*8*DrawSize+4*DrawSize-CameraY, 4, RED);
 
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
-		DrawLine(x*8*DRAW_SIZE+4*DRAW_SIZE-CameraX, y*8*DRAW_SIZE+4*DRAW_SIZE-CameraY, 
-		x*8*DRAW_SIZE+4*DRAW_SIZE+order->Flow[x][y].X*4*DRAW_SIZE-CameraX, 
-		y*8*DRAW_SIZE+4*DRAW_SIZE+order->Flow[x][y].Y*4*DRAW_SIZE-CameraY, WHITE);
+		DrawLine(x*8*DrawSize+4*DrawSize-CameraX, y*8*DrawSize+4*DrawSize-CameraY,
+		x*8*DrawSize+4*DrawSize+order->Flow[x][y].X*4*DrawSize-CameraX,
+		y*8*DrawSize+4*DrawSize+order->Flow[x][y].Y*4*DrawSize-CameraY, WHITE);
 	}
 }
 

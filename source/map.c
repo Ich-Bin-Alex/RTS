@@ -58,11 +58,11 @@ bool isReachable(u32 x, u32 y) {
 }
 
 i32 toMapX(f32 x) {
-	return x*DRAW_SIZE-CameraX;
+	return x*DrawSize-CameraX;
 }
 
 i32 toMapY(f32 y) {
-	return y*DRAW_SIZE-CameraY;
+	return y*DrawSize-CameraY;
 }
 
 void createMap(u32 seed) {
@@ -321,10 +321,10 @@ void beginDrawMap(void) {
 		return 1103515245 * (qx ^ (qy >> 3));
 	}
 
-	StartDrawX = max(0, CameraX/DRAW_SIZE/8);
-	StartDrawY = max(0, CameraY/DRAW_SIZE/8);
-	EndDrawX = min(MAP_SIZE, (GetScreenWidth() + CameraX)/DRAW_SIZE/8 + 1);
-	EndDrawY = min(MAP_SIZE, (GetScreenHeight() + CameraY)/DRAW_SIZE/8 + 1);
+	StartDrawX = max(0, CameraX/DrawSize/8);
+	StartDrawY = max(0, CameraY/DrawSize/8);
+	EndDrawX = min(MAP_SIZE, (GetScreenWidth() + CameraX)/DrawSize/8 + 1);
+	EndDrawY = min(MAP_SIZE, (GetScreenHeight() + CameraY)/DrawSize/8 + 1);
 
 	i32 anim = (i32)(GetTime() * 4.0) % 4;
 	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
@@ -359,8 +359,8 @@ void endDrawMap(void) {
 
 		for(i32 i = 1; i < 3; i++) for(i32 j = 0; j < 8; j++) { // Fog of war
 			if(!getSafe(x+NX[j]*i, y+NY[j]*i).Seen) {
-				DrawRectangle(x*8*DRAW_SIZE-CameraX, y*8*DRAW_SIZE-CameraY, 
-					8*DRAW_SIZE, 8*DRAW_SIZE, (Color){0,0,0,92});
+				DrawRectangle(x*8*DrawSize-CameraX, y*8*DrawSize-CameraY,
+					8*DrawSize, 8*DrawSize, (Color){0,0,0,92});
 				break;
 			}
 		}
