@@ -8,7 +8,7 @@
 
 i32 CharSizes[0x80] = {[' '] = 4};
 
-static f32 MoveAnim;
+static f32 MoveAnim, CursorOffset;
 static bool Selected = false, RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
 static Vector2 Select1, Select2, MovePos;
@@ -142,6 +142,7 @@ void updateInterface(void) {
 			}
 		}
 
+		CursorOffset = 0.5;
 		if(canChop) {
 			forEachUnit(i) if(Units[i].Selected) {
 				Units[i].Action = ACTION_MOVE_AND_CHOP;
@@ -157,6 +158,7 @@ void updateInterface(void) {
 					Units[i].Farm.Target = MovePos;
 					Units[i].Farm.Building = tile.Building;
 					Buildings[tile.Building].Farm.Occupied = true;
+					CursorOffset = 0.0;
 				} else moveUnit(i, NULL);
 			}
 		}
@@ -169,8 +171,8 @@ void updateInterface(void) {
 }
 
 void beginDrawInterface(void) {
-	if(MoveAnim > 0 && !MoveTarget)
-		drawTileFree((Vector2){MovePos.x-0.5, MovePos.y-0.5}, 20-ceil(MoveAnim), 31);
+	if(MoveAnim > 0 && !MoveTarget) drawTileFree(
+		(Vector2){MovePos.x - CursorOffset, MovePos.y - CursorOffset}, 20 - ceil(MoveAnim), 31);
 }
 
 void endDrawInterface(void) {
@@ -184,7 +186,7 @@ void endDrawInterface(void) {
 		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
 		if(!UnitUnderMouse && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
 			UnitUnderMouse = i;
-			if(Units[i].Player && !Map[(u32)x2][(u32)y2].Seen) UnitUnderMouse = 0;
+			if(Units[i].Player && !getSafe(x2, y2).Seen) UnitUnderMouse = 0;
 		}
 		if(Units[i].Selected && !Units[i].Type->CanChop) canChop = false;
 		if(Units[i].Selected && !Units[i].Type->CanFarm) canFarm = false;

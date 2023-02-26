@@ -26,9 +26,16 @@ void setSafe(u32 x, u32 y, tTile tile) {
 	if(x < MAP_SIZE && y < MAP_SIZE) Map[x][y] = tile;
 }
 
+static tTile DummyTile = {Move: 0xff, Seen: false};
+
 tTile getSafe(u32 x, u32 y) {
-	if(x >= MAP_SIZE || y >= MAP_SIZE) return (tTile){Move: 0xff};
+	if(x >= MAP_SIZE || y >= MAP_SIZE) return DummyTile;
 	return Map[x][y];
+}
+
+tTile *refSafe(u32 x, u32 y) {
+	if(x >= MAP_SIZE || y >= MAP_SIZE) return &DummyTile;
+	return &Map[x][y];
 }
 
 bool isTree(u32 x, u32 y) {

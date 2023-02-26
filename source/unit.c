@@ -148,13 +148,13 @@ UnitHandle newUnit(tUnit unit) {
 
 static void killUnit(UnitHandle unit) {
 	Units[unit].Alive = false;
-	u32 x = round(Units[unit].Position.x), y = round(Units[unit].Position.y);
-	Map[x][y].Animation = 0xf0 + GetRandomValue(0, 1)*8; // Blood animation
-	Map[x][y].Frame = GetRandomValue(0, 1);
+	tTile *tile = refSafe(round(Units[unit].Position.x), round(Units[unit].Position.y));
+	tile->Animation = 0xf0 + GetRandomValue(0, 1)*8; // Blood animation
+	tile->Frame = GetRandomValue(0, 1);
 	if(Units[unit].MoveOrder)
 		if(--Units[unit].MoveOrder->References <= 0) freeMoveOrder(Units[unit].MoveOrder);
 	if(Units[unit].Action == ACTION_CHOP_TREE && Units[unit].Chop.TreeX)
-		Map[Units[unit].Chop.TreeX][Units[unit].Chop.TreeY].OccupiedTree--;
+		refSafe(Units[unit].Chop.TreeX, Units[unit].Chop.TreeY)->OccupiedTree--;
 	else if(Units[unit].Action == ACTION_FARM || Units[unit].Action == ACTION_MOVE_AND_FARM)
 		Buildings[Units[unit].Farm.Building].Farm.Occupied = false;
 	Player[Units[unit].Player].Population--;
@@ -199,12 +199,12 @@ void drawUnits(void) {
 				break;
 			}
 			if(Units[i].Chop.TreeX) {
+				tTile *tile = refSafe(Units[i].Chop.TreeX, Units[i].Chop.TreeY);
 				anim = (Units[i].Animation + (i32)(GetTime() * 5.0));
 				offset = 4;
-				if(anim % 4 == 2 && (Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame >= 8 ||
-				                    !Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame)) {
-					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Animation = 0xd0;
-					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame = 0;
+				if(anim % 4 == 2 && (tile->Frame >= 8 || !tile->Frame)) {
+					tile->Animation = 0xd0;
+					tile->Frame = 0;
 				}
 			}
 			break;
@@ -226,9 +226,8 @@ void updateUnits(void) {
 		if(Units[i].Player == 0) { // Clear fog of war
 			for(i32 yi = -Units[i].Type->ViewDistance; yi <= Units[i].Type->ViewDistance; yi++) 
 			for(i32 xi = -Units[i].Type->ViewDistance; xi <= Units[i].Type->ViewDistance; xi++)
-				if(xi*xi + yi*yi <= Units[i].Type->ViewDistance*Units[i].Type->ViewDistance) {
-					if((u32)(x+xi) < MAP_SIZE && (u32)(y+yi) < MAP_SIZE) Map[x+xi][y+yi].Seen = true;
-				}
+				if(xi*xi + yi*yi <= Units[i].Type->ViewDistance*Units[i].Type->ViewDistance)
+					refSafe(x + xi, y + yi)->Seen = true;
 		}
 		if(Units[i].Health <= 0) {
 			killUnit(i);
@@ -243,21 +242,25 @@ void updateUnits(void) {
 			if(i == j) continue;
 			Vector2 axis = Vector2Subtract(Units[i].Position, Units[j].Position);
 			f32 dist = sqrtf((axis.x*axis.x) + (axis.y*axis.y));
-			if(dist < 0.8 && Units[i].Action != ACTION_FARM && Units[j].Action != ACTION_FARM) {
+			if(dist < 0.8) {
 				Vector2 delta = Vector2Scale((Vector2){axis.x/dist,axis.y/dist}, 0.5*(0.8 - dist));
-				u32 x2 = round(Units[i].Position.x+delta.x), y2 = round(Units[i].Position.y+delta.y);
-				if(!getSafe(x2, y2).Move && Units[i].Action != ACTION_CHOP_TREE)
-					Units[i].Position = Vector2Add(Units[i].Position, delta);
-				u32 x3 = round(Units[j].Position.x-delta.x), y3 = round(Units[j].Position.y-delta.y);
-				if(!getSafe(x3, y3).Move && !Units[j].MoveOrder && Units[j].Player == Units[i].Player)
-					Units[j].Position = Vector2Subtract(Units[j].Position, delta);
+				if(Units[i].Action != ACTION_FARM) {
+					u32 x2 = round(Units[i].Position.x+delta.x), y2 = round(Units[i].Position.y+delta.y);
+					if(!getSafe(x2, y2).Move && Units[i].Action != ACTION_CHOP_TREE)
+						Units[i].Position = Vector2Add(Units[i].Position, delta);
+				}
+				if(Units[j].Action != ACTION_FARM) {
+					u32 x3 = round(Units[j].Position.x-delta.x), y3 = round(Units[j].Position.y-delta.y);
+					if(!getSafe(x3, y3).Move && !Units[j].MoveOrder && Units[j].Player == Units[i].Player)
+						Units[j].Position = Vector2Subtract(Units[j].Position, delta);
+				}
 				bumbed = true;
 			} else if(dist < 1.4 && Units[j].Player != Units[i].Player) {
 				Units[i].Speed = Vector2Scale(Units[i].Speed, 0.75); // Slow down fighting units
 				if(Units[i].Action != ACTION_ATTACK) {
 					if(Units[i].Action == ACTION_CHOP_TREE && Units[i].Chop.TreeX) {
-						if(Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].OccupiedTree)
-							Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].OccupiedTree--;
+						if(getSafe(Units[i].Chop.TreeX, Units[i].Chop.TreeY).OccupiedTree)
+							refSafe(Units[i].Chop.TreeX, Units[i].Chop.TreeY)->OccupiedTree--;
 						Units[i].Chop.TreeX = Units[i].Chop.TreeY = 0;
 					} else if(Units[i].Action == ACTION_FARM || Units[i].Action == ACTION_MOVE_AND_FARM)
 						Buildings[Units[i].Farm.Building].Farm.Occupied = false;
@@ -270,12 +273,12 @@ void updateUnits(void) {
 
 		bool attacked = false;
 		if(Units[i].Action == ACTION_ATTACK) {
-			u32 x2 = round(Units[Units[i].Attack.Unit].Position.x);
-			u32 y2 = round(Units[Units[i].Attack.Unit].Position.y);
-			if(x2 < MAP_SIZE && y2 < MAP_SIZE && !Map[x2][y2].Animation) { // Bloodsplatter animation
-				Map[x2][y2].Animation = 0xf0 + GetRandomValue(0, 1)*8;
-				Map[x2][y2].Frame = GetRandomValue(0, 1);
-				Map[x2][y2].Blood = 1.0;
+			tTile *tile = refSafe(round(Units[Units[i].Attack.Unit].Position.x),
+			                      round(Units[Units[i].Attack.Unit].Position.y));
+			if(!tile->Animation) { // Bloodsplatter animation
+				tile->Animation = 0xf0 + GetRandomValue(0, 1)*8;
+				tile->Frame = GetRandomValue(0, 1);
+				tile->Blood = 1.0;
 			}
 
 			Vector2 axis = Vector2Subtract(Units[i].Position, Units[Units[i].Attack.Unit].Position);
@@ -312,12 +315,13 @@ void updateUnits(void) {
 					}
 				}
 				if(Units[i].Chop.TreeX)
-					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].OccupiedTree++;
+					refSafe(Units[i].Chop.TreeX, Units[i].Chop.TreeY)->OccupiedTree++;
 			}
 			if(!Units[i].Chop.TreeX) {
 				Units[i].Action = ACTION_MOVE_AND_CHOP;
 				goto lSearchTree;
 			}
+			tTile *tile = refSafe(Units[i].Chop.TreeX, Units[i].Chop.TreeY);
 			Vector2 axis = Vector2Subtract(Units[i].Position,
 				(Vector2){Units[i].Chop.TreeX,Units[i].Chop.TreeY});
 			Units[i].Chop.Distance = Vector2Distance(Units[i].Position,
@@ -340,8 +344,7 @@ void updateUnits(void) {
 				Units[i].Unmoveable++;
 				if(getSafe(x2, y2).Move || Units[i].Unmoveable > 30) {
 					Units[i].Speed = (Vector2){0};
-					if(Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].OccupiedTree)
-						Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].OccupiedTree--;
+					if(tile->OccupiedTree) tile->OccupiedTree--;
 					Units[i].Chop.IgnoreTreeX = Units[i].Chop.TreeX;
 					Units[i].Chop.IgnoreTreeY = Units[i].Chop.TreeY;
 					Units[i].Chop.TreeX = Units[i].Chop.TreeY = 0;
@@ -350,8 +353,8 @@ void updateUnits(void) {
 				}
 			} else {
 				if(Units[i].Speed.x || Units[i].Speed.y) {
-					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Animation = 0xd0;
-					Map[Units[i].Chop.TreeX][Units[i].Chop.TreeY].Frame = 0;
+					tile->Animation = 0xd0;
+					tile->Frame = 0;
 				}
 				Units[i].Speed = (Vector2){0};
 			}
@@ -389,7 +392,7 @@ void updateUnits(void) {
 						(tMoveOrder){Target: (Vector2){treeX, treeY}, OnlySeen: true}));
 					Vector2 flow = getUnitFlow(i);
 					if(!flow.x && !flow.y) {
-						Map[treeX][treeY].Unreachable = true;
+						refSafe(treeX, treeY)->Unreachable = true;
 						moveUnit(i, NULL);
 						Units[i].Unmoveable = oldUnmoveable;
 					}
@@ -437,6 +440,7 @@ void updateUnits(void) {
 			} else if(nextEnemy) {
 				tMoveOrder *move = newMoveOrder((tMoveOrder){Follow: nextEnemy});
 				moveUnit(i, move);
+				Units[i].Action = ACTION_MOVE;
 			} else continue;
 		}
 		if(Units[i].MoveOrder->Follow && !Units[Units[i].MoveOrder->Follow].Alive) {
@@ -487,8 +491,8 @@ void updateUnits(void) {
 
 void moveUnit(UnitHandle unit, tMoveOrder *order) {
 	if((Units[unit].Action == ACTION_CHOP_TREE || Units[unit].Action == ACTION_MOVE_AND_CHOP) &&
-	   Units[unit].Chop.TreeX && Map[Units[unit].Chop.TreeX][Units[unit].Chop.TreeY].OccupiedTree)
-		Map[Units[unit].Chop.TreeX][Units[unit].Chop.TreeY].OccupiedTree--;
+	   Units[unit].Chop.TreeX && getSafe(Units[unit].Chop.TreeX,Units[unit].Chop.TreeY).OccupiedTree)
+		refSafe(Units[unit].Chop.TreeX, Units[unit].Chop.TreeY)->OccupiedTree--;
 	else if(Units[unit].Action == ACTION_FARM || Units[unit].Action == ACTION_MOVE_AND_FARM)
 		Buildings[Units[unit].Farm.Building].Farm.Occupied = false;
 	if(order) order->References++;

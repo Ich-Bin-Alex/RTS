@@ -32,6 +32,7 @@ extern tTile Map[MAP_SIZE][MAP_SIZE];
 
 void setSafe(u32 x, u32 y, tTile tile);
 tTile getSafe(u32 x, u32 y);
+tTile *refSafe(u32 x, u32 y);
 bool isTree(u32 x, u32 y);
 bool isFarm(u32 x, u32 y);
 bool isReachable(u32 x, u32 y);
