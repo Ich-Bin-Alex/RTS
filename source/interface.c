@@ -89,6 +89,7 @@ void updateInterface(void) {
 		bool canFarm = isFarm(MovePos.x, MovePos.y) &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Player &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Farm.Occupied;
+		UnitHandle farmer = 0;
 		if(UnitUnderMouse && Units[UnitUnderMouse].Player) {
 			MoveTarget = UnitUnderMouse;
 			move = newMoveOrder((tMoveOrder){Target: MovePos, Follow: MoveTarget});
@@ -109,14 +110,20 @@ void updateInterface(void) {
 		i32 numSelected = 0, numUnmoveable = 0;
 		Vector2 mid = {0};
 		forEachUnit(i) if(Units[i].Selected) {
-			mid = Vector2Add(mid, Units[i].Position);
 			if(!Units[i].Type->CanChop) canChop = false;
 			if(!Units[i].Type->CanFarm) canFarm = false;
+		}
+		forEachUnit(i) if(Units[i].Selected) {
+			mid = Vector2Add(mid, Units[i].Position);
 			moveUnit(i, move);
 			Units[i].Action = ACTION_MOVE;
 			numSelected++;
 			Vector2 flow = getUnitFlow(i);
 			if(!flow.x && !flow.y) numUnmoveable++;
+			if(canFarm && !farmer) {
+				farmer = i;
+				break;
+			}
 		}
 		if(!numSelected) {
 			Selected = false;
@@ -150,17 +157,15 @@ void updateInterface(void) {
 				Units[i].Chop.SearchTreeX = MovePos.x;
 				Units[i].Chop.SearchTreeY = MovePos.y;
 			}
-		} else if(canFarm) {
+		} else if(canFarm && farmer) {
 			tTile tile = getSafe(MovePos.x, MovePos.y);
-			forEachUnit(i) if(Units[i].Selected) {
-				if(!Buildings[tile.Building].Farm.Occupied) {
-					Units[i].Action = ACTION_MOVE_AND_FARM;
-					Units[i].Farm.Target = MovePos;
-					Units[i].Farm.Building = tile.Building;
-					Buildings[tile.Building].Farm.Occupied = true;
-					CursorOffset = 0.0;
-				} else moveUnit(i, NULL);
-			}
+			if(!Buildings[tile.Building].Farm.Occupied) {
+				Units[farmer].Action = ACTION_MOVE_AND_FARM;
+				Units[farmer].Farm.Target = MovePos;
+				Units[farmer].Farm.Building = tile.Building;
+				Buildings[tile.Building].Farm.Occupied = true;
+				CursorOffset = 0.0;
+			} else moveUnit(farmer, NULL);
 		}
 
 		if(MovePos.x) MoveAnim = 4;
