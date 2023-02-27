@@ -84,6 +84,7 @@ extern tUnit *Units;
 extern u32 NumUnits, AllocatedUnits, UnitPtr;
 
 UnitHandle newUnit(tUnit unit);
+void killUnit(UnitHandle unit);
 Vector2 getUnitFlow(UnitHandle unit);
 void drawUnits(void);
 void updateUnits(void);

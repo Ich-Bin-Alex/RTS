@@ -147,7 +147,7 @@ UnitHandle newUnit(tUnit unit) {
 	return ret;
 }
 
-static void killUnit(UnitHandle unit) {
+void killUnit(UnitHandle unit) {
 	Units[unit].Alive = Units[unit].Selected = false;
 	tTile *tile = refSafe(round(Units[unit].Position.x), round(Units[unit].Position.y));
 	tile->Animation = 0xf0 + GetRandomValue(0, 1)*8; // Blood animation

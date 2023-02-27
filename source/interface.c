@@ -13,6 +13,7 @@ static bool Selected = false, RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
 static Vector2 Select1, Select2, MovePos;
 static bool ShowDebug = false;
+static i32 UIWidth, UIHeight;
 
 static void drawText(char *text, i32 x, i32 y, Color color) {
 	for(i32 i = 0; text[i]; i++) {
@@ -34,6 +35,26 @@ static void drawTextAnimated(char *text, i32 x, i32 y, Color color[5]) {
 	}
 }
 
+static bool drawActionButton(i32 x, i32 y, u32 tx, u32 ty) {
+	i32 mx = GetMouseX(), my = GetMouseY();
+	drawTileFixed(x, y, 20, 27, WHITE, DrawSize);
+	drawTileFixed(x + 8*DrawSize, y, 21, 27, WHITE, DrawSize);
+	drawTileFixed(x, y + 8*DrawSize, 20, 28, WHITE, DrawSize);
+	drawTileFixed(x + 8*DrawSize, y + 8*DrawSize, 21, 28, WHITE, DrawSize);
+	drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, WHITE, DrawSize);
+	if(mx > x && mx < x + 16*DrawSize && my > y && my < y + 16*DrawSize) {
+		if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+			drawTileFixed(x, y, 22, 27, WHITE, DrawSize);
+			drawTileFixed(x + 8*DrawSize, y, 23, 27, WHITE, DrawSize);
+			drawTileFixed(x, y + 8*DrawSize, 22, 28, WHITE, DrawSize);
+			drawTileFixed(x + 8*DrawSize, y + 8*DrawSize, 23, 28, WHITE, DrawSize);
+			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, WHITE, DrawSize);
+			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, GetColor(0x00000080), DrawSize);
+		} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) return true;
+	}
+	return false;
+}
+
 static i32 measureText(char *text) {
 	i32 length = 0;
 	for(i32 i = 0; text[i]; i++) length += CharSizes[(u32)text[i]] * FontSize;
@@ -52,17 +73,21 @@ static void drawHealthBar(i32 x, i32 y, UnitHandle unit, i32 scale) {
 void updateInterface(void) {
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
+	bool inUnitUI = (GetMouseY() > height - 3 - 16*DrawSize && GetMouseX() <= UIWidth) ||
+	                (GetMouseX() <= 3 + 16*DrawSize && GetMouseY() >= height - UIHeight);
 
-	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 50) CameraX += round(1000.0 * GetFrameTime());
-	else if(IsKeyDown(KEY_LEFT) || GetMouseX() <= 50) CameraX -= round(1000.0 * GetFrameTime());
-	if(IsKeyDown(KEY_DOWN) || GetMouseY() >= height - 50) CameraY += round(1000.0 * GetFrameTime());
-	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 50) CameraY -= round(1000.0 * GetFrameTime());
+	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 15) CameraX += round(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_LEFT) || (GetMouseX() <= 15 && !inUnitUI))
+		CameraX -= round(1000.0 * GetFrameTime());
+	if(IsKeyDown(KEY_DOWN) || (GetMouseY() >= height - 15 && !inUnitUI))
+		CameraY += round(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 15) CameraY -= round(1000.0 * GetFrameTime());
 	if(CameraX > MAP_SIZE*8*DrawSize-width) CameraX = MAP_SIZE*8*DrawSize-width;
 	if(CameraX < 0) CameraX = 0;
 	if(CameraY > MAP_SIZE*8*DrawSize-height) CameraY = MAP_SIZE*8*DrawSize-height;
 	if(CameraY < 0) CameraY = 0;
 
-	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !inUnitUI) {
 		Selected = RectSelect = false;
 		i32 x = mouse.x/DrawSize, y = mouse.y/DrawSize;
 		forEachUnit(i) {
@@ -71,7 +96,7 @@ void updateInterface(void) {
 			   y > Units[i].Position.y*8 && y < Units[i].Position.y*8+8 && !Selected)
 				Units[i].Selected = Selected = true;
 		}
-	} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+	} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !inUnitUI) {
 		if(RectSelect && abs(Select1.x - Select2.x) > 1 && abs(Select1.y - Select2.y) > 1) {
 			i32 x1 = (min(Select1.x, Select2.x) + CameraX) / DrawSize;
 			i32 y1 = (min(Select1.y, Select2.y) + CameraY) / DrawSize;
@@ -85,7 +110,7 @@ void updateInterface(void) {
 			}
 			RectSelect = false;
 		}
-	} else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+	} else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !inUnitUI) {
 		if(!RectSelect) Select1 = GetMousePosition();
 		Select2 = GetMousePosition();
 		RectSelect = true;
@@ -94,8 +119,8 @@ void updateInterface(void) {
 		MovePos = (Vector2){mouse.x / DrawSize / 8.0, mouse.y / DrawSize / 8.0};
 		tMoveOrder *move;
 		MoveTarget = 0;
-		bool canChop = isTree(MovePos.x, MovePos.y);
-		bool canFarm = isFarm(MovePos.x, MovePos.y) &&
+		bool canChop = isTree(MovePos.x, MovePos.y) && getSafe(MovePos.x, MovePos.y).Seen;
+		bool canFarm = isFarm(MovePos.x, MovePos.y) && getSafe(MovePos.x, MovePos.y).Seen &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Player &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Farm.Occupied;
 		bool canBuild = true;
@@ -197,8 +222,8 @@ void endDrawInterface(void) {
 	u32 width = GetScreenWidth(), height = GetScreenHeight();
 	UnitUnderMouse = 0;
 	UnitHandle firstSelected = 0;
-	bool canChop = Selected && isTree(x / 8.0, y / 8.0);
-	bool canFarm = Selected && isFarm(x / 8.0, y / 8.0) &&
+	bool canChop = Selected && isTree(x / 8.0, y / 8.0) && getSafe(x / 8.0 , y / 8.0).Seen;
+	bool canFarm = Selected && isFarm(x / 8.0, y / 8.0) && getSafe(x / 8.0 , y / 8.0).Seen &&
 		!Buildings[getSafe(x / 8.0, y / 8.0).Building].Farm.Occupied;
 	bool canBuild = true;
 	forEachUnit(i) {
@@ -215,7 +240,7 @@ void endDrawInterface(void) {
 			if(!firstSelected) firstSelected = i;
 		}
 		if(Units[i].Selected || UnitUnderMouse == i)
-			drawHealthBar(toMapX(Units[i].Position.x*8)+3, toMapY(Units[i].Position.y*8-2), i, 6);
+			drawHealthBar(toMapX(Units[i].Position.x*8)+DrawSize, toMapY(Units[i].Position.y*8-2), i, 6);
 	}
 
 	if(MoveAnim > 0 && MoveTarget) drawTileFree(Units[MoveTarget].Position, 24-ceil(MoveAnim), 31);
@@ -270,7 +295,12 @@ void endDrawInterface(void) {
 			char *text = TextFormat("%d", numSelected);
 			drawText(text, 3 + 8*DrawSize - measureText(text)/2, height - 8*DrawSize, WHITE);
 		} else drawHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, firstSelected, 10);
-	}
+
+		if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29))
+			killUnit(firstSelected);
+		UIWidth = 3 + 32*DrawSize;
+		UIHeight = 3 + 16*DrawSize;
+	} else UIWidth = UIHeight = 0;
 
 	if(canChop) {
 		i32 anim = GetTime() * 5;
