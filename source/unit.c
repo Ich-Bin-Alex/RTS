@@ -11,6 +11,7 @@ tUnit *Units;
 
 tUnitType Peasent = {
 	Name: "Peasent",
+	FoodCost: 50,
 	MaxHealth: 10,
 	Attack: 1,
 	Speed: 4.0,
@@ -185,7 +186,8 @@ void drawUnits(void) {
 		if(Units[i].Player && !getSafe(Units[i].Position.x, Units[i].Position.y).Seen) continue;
 		i32 anim = 0, offset = 0;
 		switch(Units[i].Action) {
-		case ACTION_MOVE: case ACTION_MOVE_AND_CHOP: case ACTION_MOVE_AND_FARM: lMove:
+		case ACTION_MOVE: case ACTION_MOVE_AND_CHOP:
+		case ACTION_MOVE_AND_FARM: case ACTION_MOVE_AND_BUILD: lMove:
 			if(Units[i].Speed.x || Units[i].Speed.y)
 				anim = (Units[i].Animation + (i32)(GetTime()*Vector2Length(Units[i].Speed)*2.0));
 			break;

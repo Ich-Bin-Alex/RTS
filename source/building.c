@@ -10,6 +10,7 @@ tBuilding *Buildings;
 tBuildingType Farm = {
 	Name: "Farm",
 	MaxHealth: 100,
+	WoodCost: 50,
 	ViewDistance: 0,
 	BlockMovement: false,
 	SizeX: 2, SizeY: 2,

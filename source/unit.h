@@ -37,6 +37,7 @@ typedef struct tUnitType {
 	u32 Attack;
 	i32 ViewDistance;
 	f32 Speed;
+	u32 FoodCost, WoodCost;
 	bool CanChop, CanFarm, CanBuild;
 } tUnitType;
 
@@ -45,7 +46,7 @@ typedef enum eAction {
 	ACTION_ATTACK,
 	ACTION_CHOP_TREE, ACTION_MOVE_AND_CHOP,
 	ACTION_FARM, ACTION_MOVE_AND_FARM,
-	ACTION_BUILD
+	ACTION_BUILD, ACTION_MOVE_AND_BUILD,
 } eAction;
 
 extern tUnitType Peasent;

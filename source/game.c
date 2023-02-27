@@ -23,10 +23,11 @@ void initGame(void) {
 
 	for(i32 i = 0; i < 8; i++) {
 		Image sprites = ImageFromImage(img, (Rectangle){128,0,128,128});
-		ImageColorReplace(&sprites, GetColor(0xb8b8b8ff), GetImageColor(img, 254, 248 + i));
-		ImageColorReplace(&sprites, GetColor(0x858585ff), GetImageColor(img, 255, 248 + i));
-		Player[i].Sprites = LoadTextureFromImage(sprites);
 		Player[i].Color = GetImageColor(img, 254, 248 + i);
+		Player[i].Color2 = GetImageColor(img, 255, 248 + i);
+		ImageColorReplace(&sprites, GetColor(0xb8b8b8ff), Player[i].Color);
+		ImageColorReplace(&sprites, GetColor(0x858585ff), Player[i].Color2);
+		Player[i].Sprites = LoadTextureFromImage(sprites);
 		UnloadImage(sprites);
 	}
 	for(u32 i = '\"'; i <= '~'; i++) {
@@ -56,18 +57,18 @@ void updateGame(void) {
 }
 
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha) {
-	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8}, 
+	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){x*8*DrawSize-CameraX, y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
 		(Vector2){0}, 0, (Color){255,255,255,255.0*alpha});
 }
 
 void drawTileFixed(i32 x, i32 y, u32 tx, u32 ty, Color color, i32 scale) {
-	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8}, 
+	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){x, y, 8*scale, 8*scale}, (Vector2){0}, 0, color);
 }
 
 void drawTileFree(Vector2 pos, u32 tx, u32 ty) {
-	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8}, 
+	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){pos.x*8*DrawSize-CameraX, pos.y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
 		(Vector2){0}, 0, WHITE);
 }
@@ -76,6 +77,11 @@ void drawSprite(Vector2 pos, PlayerHandle player, u32 tx, u32 ty) {
 	DrawTexturePro(Player[player].Sprites, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){pos.x*8*DrawSize-CameraX, pos.y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
 		(Vector2){0}, 0, WHITE);
+}
+
+void drawSpriteFixed(i32 x, i32 y, PlayerHandle player, u32 tx, u32 ty) {
+	DrawTexturePro(Player[player].Sprites, (Rectangle){tx*8, ty*8, 8, 8},
+		(Rectangle){x, y, 8*DrawSize, 8*DrawSize}, (Vector2){0}, 0, WHITE);
 }
 
 i32 choice(i32 x, i32 y) {

@@ -9,6 +9,7 @@ typedef u32 BuildingHandle;
 typedef struct tBuildingType {
 	char Name[32];
 	u32 MaxHealth;
+	u32 FoodCost, WoodCost;
 	i32 ViewDistance;
 	bool BlockMovement;
 	i32 SizeX, SizeY;

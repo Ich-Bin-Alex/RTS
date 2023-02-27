@@ -40,6 +40,15 @@ static i32 measureText(char *text) {
 	return length;
 }
 
+static void drawHealthBar(i32 x, i32 y, UnitHandle unit, i32 scale) {
+	i32 health = ((f32)Units[unit].Health / (f32)Units[unit].Type->MaxHealth) * (f32)scale;
+	Color color = HealthColor1;
+	if(health < scale/3.0) color = HealthColor3;
+	else if(health < scale/1.5) color = HealthColor2;
+	DrawRectangle(x, y, scale*DrawSize, DrawSize, GetColor(0x00000080));
+	DrawRectangle(x, y, health*DrawSize, DrawSize, color);
+}
+
 void updateInterface(void) {
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
@@ -182,8 +191,10 @@ void beginDrawInterface(void) {
 
 void endDrawInterface(void) {
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
-	i32 x = mouse.x/DrawSize, y = mouse.y/DrawSize;
+	i32 x = mouse.x/DrawSize, y = mouse.y/DrawSize, numSelected = 0;
+	u32 width = GetScreenWidth(), height = GetScreenHeight();
 	UnitUnderMouse = 0;
+	UnitHandle firstSelected = 0;
 	bool canChop = Selected && isTree(x / 8.0, y / 8.0);
 	bool canFarm = Selected && isFarm(x / 8.0, y / 8.0) &&
 		!Buildings[getSafe(x / 8.0, y / 8.0).Building].Farm.Occupied;
@@ -193,16 +204,21 @@ void endDrawInterface(void) {
 			UnitUnderMouse = i;
 			if(Units[i].Player && !getSafe(x2, y2).Seen) UnitUnderMouse = 0;
 		}
-		if(Units[i].Selected && !Units[i].Type->CanChop) canChop = false;
-		if(Units[i].Selected && !Units[i].Type->CanFarm) canFarm = false;
+		if(Units[i].Selected) {
+			if(!Units[i].Type->CanChop) canChop = false;
+			if(!Units[i].Type->CanFarm) canFarm = false;
+			numSelected++;
+			if(!firstSelected) firstSelected = i;
+		}
 		if(Units[i].Selected || UnitUnderMouse == i) {
-			i32 health = ((f32)Units[i].Health / (f32)Units[i].Type->MaxHealth) * 6.0;
-			i32 x3 = toMapX(Units[i].Position.x*8), y3 = toMapY(Units[i].Position.y*8-2);
-			Color color = HealthColor1;
-			if(health < 2.0) color = HealthColor3;
-			else if(health < 4.0) color = HealthColor2;
-			DrawRectangle(x3+3, y3, 6*DrawSize, DrawSize, GetColor(0x00000080));
-			DrawRectangle(x3+3, y3, health*DrawSize, DrawSize, color);
+			drawHealthBar(toMapX(Units[i].Position.x*8)+3, toMapY(Units[i].Position.y*8-2), i, 6);
+			//i32 health = ((f32)Units[i].Health / (f32)Units[i].Type->MaxHealth) * 6.0;
+			//i32 x3 = toMapX(Units[i].Position.x*8), y3 = toMapY(Units[i].Position.y*8-2);
+			//Color color = HealthColor1;
+			//if(health < 2.0) color = HealthColor3;
+			//else if(health < 4.0) color = HealthColor2;
+			//DrawRectangle(x3+3, y3, 6*DrawSize, DrawSize, GetColor(0x00000080));
+			//DrawRectangle(x3+3, y3, health*DrawSize, DrawSize, color);
 		}
 	}
 
@@ -216,28 +232,28 @@ void endDrawInterface(void) {
 
 	i32 offset = 8*DrawSize + 9;
 	char *text = TextFormat("%d/%d", Player[0].Population, Player[0].PopulationLimit);
-	drawText(text, GetScreenWidth() - measureText(text) - offset, 6, TextColor);
-	drawTileFixed(GetScreenWidth() - 3 - 8*DrawSize, 3, 16, 29, WHITE, DrawSize);
+	drawText(text, width - measureText(text) - offset, 6, TextColor);
+	drawTileFixed(width - 3 - 8*DrawSize, 3, 16, 29, WHITE, DrawSize);
 
 	text = TextFormat("%d", Player[0].Food);
 	offset = 8*DrawSize + 9;
 	if(Player[0].FoodIncome) {
 		char *inc = TextFormat("+%d", Player[0].FoodIncome);
 		offset += measureText(inc);
-		drawText(inc, GetScreenWidth() - offset, 8 + 8*DrawSize, GoodColor);
+		drawText(inc, width - offset, 8 + 8*DrawSize, GoodColor);
 	}
-	drawText(text, GetScreenWidth() - measureText(text) - offset, 8 + 8*DrawSize, TextColor);
-	drawTileFixed(GetScreenWidth() - 3 - 8*DrawSize, 5 + 8*DrawSize, 17, 29, WHITE, DrawSize);
+	drawText(text, width - measureText(text) - offset, 8 + 8*DrawSize, TextColor);
+	drawTileFixed(width - 3 - 8*DrawSize, 5 + 8*DrawSize, 17, 29, WHITE, DrawSize);
 
 	text = TextFormat("%d", Player[0].Wood);
 	offset = 8*DrawSize + 9;
 	if(Player[0].WoodIncome) {
 		char *inc = TextFormat("+%d", Player[0].WoodIncome);
 		offset += measureText(inc);
-		drawText(inc, GetScreenWidth() - offset, 10 + 16*DrawSize, GoodColor);
+		drawText(inc, width - offset, 10 + 16*DrawSize, GoodColor);
 	}
-	drawText(text, GetScreenWidth() - measureText(text) - offset, 10 + 16*DrawSize, TextColor);
-	drawTileFixed(GetScreenWidth() - 3 - 8*DrawSize, 7 + 16*DrawSize, 18, 29, WHITE, DrawSize);
+	drawText(text, width - measureText(text) - offset, 10 + 16*DrawSize, TextColor);
+	drawTileFixed(width - 3 - 8*DrawSize, 7 + 16*DrawSize, 18, 29, WHITE, DrawSize);
 
 	if(ShowDebug) {
 		i32 fps = GetFPS();
@@ -252,5 +268,21 @@ void endDrawInterface(void) {
 	} else if(canFarm) {
 		i32 anim = GetTime() * 5;
 		drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 24 + anim % 3, 30, WHITE, DrawSize);
-	}else drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DrawSize);
+	} else drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DrawSize);
+
+	if(numSelected) {
+		DrawRectangle(3, height - 3 - 16*DrawSize, 16*DrawSize, 16*DrawSize, Player[0].Color2);
+		drawTileFixed(3, height - 3 - 16*DrawSize, 16, 27, WHITE, DrawSize);
+		drawTileFixed(3 + 8*DrawSize, height - 3 - 16*DrawSize, 17, 27, WHITE, DrawSize);
+		drawTileFixed(3, height - 3 - 8*DrawSize, 16, 28, WHITE, DrawSize);
+		drawTileFixed(3 + 8*DrawSize, height - 3 - 8*DrawSize, 17, 28, WHITE, DrawSize);
+		i32 anim = (i32)(GetTime() * 4.0);
+		drawSpriteFixed(3 + 4*DrawSize, height-3-13*DrawSize, 0, anim % 4, 0);
+		if(numSelected > 1) {
+			char *text = TextFormat("%d", numSelected);
+			drawText(text, 3 + 8*DrawSize - measureText(text)/2, height - 8*DrawSize, WHITE);
+		} else {
+			drawHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, firstSelected, 10);
+		}
+	}
 }
