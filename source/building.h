@@ -23,11 +23,10 @@ typedef struct tBuilding {
 	bool Exists;
 	tBuildingType *Type;
 	PlayerHandle Player;
-	Vector2 Position;
 	i32 Health, FirstX, FirstY;
 	union {
 		struct {
-			bool Occupied;
+			u32 Occupier;
 		} Farm;
 	};
 } tBuilding;

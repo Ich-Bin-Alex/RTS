@@ -333,12 +333,12 @@ void beginDrawMap(void) {
 	EndDrawX = min(MAP_SIZE, (GetScreenWidth() + CameraX)/DrawSize/8 + 1);
 	EndDrawY = min(MAP_SIZE, (GetScreenHeight() + CameraY)/DrawSize/8 + 1);
 
-	i32 anim = (i32)(GetTime() * 4.0) % 4;
+	i32 anim = floor(GetTime() * 4.0);
 	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
 		if(!Map[x][y].Seen) continue;
 		u32 tx = Map[x][y].Bottom & 0x0f, ty = Map[x][y].Bottom >> 4;
 		if(tx >= 9 && ty >= 1 && ty <= 3) {
-			ty += anim * 3; // Water animation
+			ty += (anim  % 4) * 3; // Water animation
 			Map[x][y].Blood = 0; // Disable blood in water
 		}
 		drawTile(x, y, tx, ty, 1.0);

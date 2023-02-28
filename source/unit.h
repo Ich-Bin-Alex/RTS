@@ -2,6 +2,7 @@
 #define H_UNIT
 
 #include "source/tools/helper.h"
+#include "source/game.h"
 #include "source/map.h"
 #include "source/building.h"
 

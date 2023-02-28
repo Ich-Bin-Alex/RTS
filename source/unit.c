@@ -157,7 +157,7 @@ void killUnit(UnitHandle unit) {
 	if(Units[unit].Action == ACTION_CHOP_TREE && Units[unit].Chop.TreeX)
 		refSafe(Units[unit].Chop.TreeX, Units[unit].Chop.TreeY)->OccupiedTree--;
 	else if(Units[unit].Action == ACTION_FARM || Units[unit].Action == ACTION_MOVE_AND_FARM)
-		Buildings[Units[unit].Farm.Building].Farm.Occupied = false;
+		Buildings[Units[unit].Farm.Building].Farm.Occupier = 0;
 	Player[Units[unit].Player].Population--;
 	NumUnits--;
 }
@@ -189,20 +189,20 @@ void drawUnits(void) {
 		case ACTION_MOVE: case ACTION_MOVE_AND_CHOP:
 		case ACTION_MOVE_AND_FARM: case ACTION_MOVE_AND_BUILD: lMove:
 			if(Units[i].Speed.x || Units[i].Speed.y)
-				anim = (Units[i].Animation + (i32)(GetTime()*Vector2Length(Units[i].Speed)*2.0));
+				anim = (Units[i].Animation + floor(GetTime()*Vector2Length(Units[i].Speed)*2.0));
 			break;
 		case ACTION_ATTACK:
-			anim = (Units[i].Animation + (i32)(GetTime() * 8.0));
+			anim = (Units[i].Animation + floor(GetTime() * 8.0));
 			offset = 4;
 			break;
 		case ACTION_CHOP_TREE: // Reuse attack animation
 			if(Units[i].Chop.Distance >= 0.8) {
-				anim = (Units[i].Animation + (i32)(GetTime() * 4.0));
+				anim = (Units[i].Animation + floor(GetTime() * 4.0));
 				break;
 			}
 			if(Units[i].Chop.TreeX) {
 				tTile *tile = refSafe(Units[i].Chop.TreeX, Units[i].Chop.TreeY);
-				anim = (Units[i].Animation + (i32)(GetTime() * 5.0));
+				anim = (Units[i].Animation + floor(GetTime() * 5.0));
 				offset = 4;
 				if(anim % 4 == 2 && (tile->Frame >= 8 || !tile->Frame)) {
 					tile->Animation = 0xd0;
@@ -212,7 +212,7 @@ void drawUnits(void) {
 			break;
 		case ACTION_FARM:
 			if(Units[i].Speed.x || Units[i].Speed.y) goto lMove;
-			anim = (Units[i].Animation + (i32)(GetTime() * 6.0));
+			anim = (Units[i].Animation + floor(GetTime() * 6.0));
 			offset = 8;
 			break;
 		case ACTION_BUILD:
@@ -265,7 +265,7 @@ void updateUnits(void) {
 							refSafe(Units[i].Chop.TreeX, Units[i].Chop.TreeY)->OccupiedTree--;
 						Units[i].Chop.TreeX = Units[i].Chop.TreeY = 0;
 					} else if(Units[i].Action == ACTION_FARM || Units[i].Action == ACTION_MOVE_AND_FARM)
-						Buildings[Units[i].Farm.Building].Farm.Occupied = false;
+						Buildings[Units[i].Farm.Building].Farm.Occupier = 0;
 					Units[i].Attack.Unit = j;
 					Units[i].Action = ACTION_ATTACK;
 				}
@@ -485,7 +485,7 @@ void updateUnits(void) {
 			} else if(Units[i].Action == ACTION_MOVE_AND_FARM) {
 				Units[i].Action = ACTION_FARM;
 				Units[i].Farm.Timer = GetTime() + (f32)GetRandomValue(0, 500)/100.0;
-				Buildings[Units[i].Farm.Building].Farm.Occupied = true;
+				Buildings[Units[i].Farm.Building].Farm.Occupier = i;
 			}
 		}
 	}
@@ -496,7 +496,7 @@ void moveUnit(UnitHandle unit, tMoveOrder *order) {
 	   Units[unit].Chop.TreeX && getSafe(Units[unit].Chop.TreeX,Units[unit].Chop.TreeY).OccupiedTree)
 		refSafe(Units[unit].Chop.TreeX, Units[unit].Chop.TreeY)->OccupiedTree--;
 	else if(Units[unit].Action == ACTION_FARM || Units[unit].Action == ACTION_MOVE_AND_FARM)
-		Buildings[Units[unit].Farm.Building].Farm.Occupied = false;
+		Buildings[Units[unit].Farm.Building].Farm.Occupier = 0;
 	if(order) order->References++;
 	if(Units[unit].MoveOrder)
 		if(--Units[unit].MoveOrder->References <= 0) freeMoveOrder(Units[unit].MoveOrder);
