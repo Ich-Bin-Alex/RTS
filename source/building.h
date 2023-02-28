@@ -13,6 +13,7 @@ typedef struct tBuildingType {
 	i32 ViewDistance;
 	bool BlockMovement;
 	i32 SizeX, SizeY;
+	u8 Icon;
 	u8 Tiles[3][3];
 } tBuildingType;
 
@@ -22,6 +23,7 @@ typedef struct tBuilding {
 	bool Exists;
 	tBuildingType *Type;
 	PlayerHandle Player;
+	Vector2 Position;
 	i32 Health;
 	union {
 		struct {
@@ -34,6 +36,6 @@ extern tBuilding *Buildings;
 extern u32 AllocatedBuildings, BuildingPtr;
 
 BuildingHandle newBuilding(tBuilding build, u32 x, u32 y);
-void destroyBuilding(BuildingHandle build, i32 x, i32 y);
+void destroyBuilding(BuildingHandle build);
 
 #endif

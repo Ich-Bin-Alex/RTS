@@ -36,6 +36,7 @@ tTile *refSafe(u32 x, u32 y);
 bool isTree(u32 x, u32 y);
 bool isFarm(u32 x, u32 y);
 bool isReachable(u32 x, u32 y);
+BuildingHandle getBuilding(u32 x, u32 y);
 i32 toMapX(f32 x);
 i32 toMapY(f32 y);
 void createMap(u32 seed);

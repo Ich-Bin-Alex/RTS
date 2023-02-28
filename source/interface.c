@@ -11,6 +11,7 @@ i32 CharSizes[0x80] = {[' '] = 4};
 static f32 MoveAnim, CursorOffset;
 static bool Selected = false, RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
+static BuildingHandle SelectedBuild;
 static Vector2 Select1, Select2, MovePos;
 static bool ShowDebug = false;
 static i32 UIWidth, UIHeight;
@@ -70,6 +71,15 @@ static void drawHealthBar(i32 x, i32 y, UnitHandle unit, i32 scale) {
 	DrawRectangle(x, y, health*DrawSize, DrawSize, color);
 }
 
+static void drawBuildingHealthBar(i32 x, i32 y, BuildingHandle build, i32 scale) {
+	i32 health = ((f32)Buildings[build].Health / (f32)Buildings[build].Type->MaxHealth) * (f32)scale;
+	Color color = HealthColor1;
+	if(health < scale/3.0) color = HealthColor3;
+	else if(health < scale/1.5) color = HealthColor2;
+	DrawRectangle(x, y, scale*DrawSize, DrawSize, GetColor(0x00000080));
+	DrawRectangle(x, y, health*DrawSize, DrawSize, color);
+}
+
 void updateInterface(void) {
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
@@ -89,6 +99,7 @@ void updateInterface(void) {
 
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !inUnitUI) {
 		Selected = RectSelect = false;
+		SelectedBuild = 0;
 		i32 x = mouse.x/DrawSize, y = mouse.y/DrawSize;
 		forEachUnit(i) {
 			Units[i].Selected = false;
@@ -96,6 +107,7 @@ void updateInterface(void) {
 			   y > Units[i].Position.y*8 && y < Units[i].Position.y*8+8 && !Selected)
 				Units[i].Selected = Selected = true;
 		}
+		if(!Selected) SelectedBuild = getBuilding(x / 8, y / 8);
 	} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !inUnitUI) {
 		if(RectSelect && abs(Select1.x - Select2.x) > 1 && abs(Select1.y - Select2.y) > 1) {
 			i32 x1 = (min(Select1.x, Select2.x) + CameraX) / DrawSize;
@@ -130,14 +142,7 @@ void updateInterface(void) {
 			move = newMoveOrder((tMoveOrder){Target: MovePos, Follow: MoveTarget});
 		} else {
 			if(canFarm) {
-				Vector2 mid = {0};
-				i32 x = MovePos.x, y = MovePos.y;
-				BuildingHandle farm = getSafe(x, y).Building;
-				for(i32 xi = -2; xi < 2; xi++) for(i32 yi = -2; yi < 2; yi++) {
-					if(getSafe(x + xi, y + yi).Building == farm)
-						mid = Vector2Add(mid, (Vector2){x + xi, y + yi});
-				}
-				MovePos = Vector2Scale(mid, 0.25);
+				MovePos = Buildings[getBuilding(MovePos.x, MovePos.y)].Position;
 				MovePos.y -= 0.25;
 			}
 			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
@@ -222,9 +227,9 @@ void endDrawInterface(void) {
 	u32 width = GetScreenWidth(), height = GetScreenHeight();
 	UnitUnderMouse = 0;
 	UnitHandle firstSelected = 0;
-	bool canChop = Selected && isTree(x / 8.0, y / 8.0) && getSafe(x / 8.0 , y / 8.0).Seen;
-	bool canFarm = Selected && isFarm(x / 8.0, y / 8.0) && getSafe(x / 8.0 , y / 8.0).Seen &&
-		!Buildings[getSafe(x / 8.0, y / 8.0).Building].Farm.Occupied;
+	bool canChop = Selected && isTree(x / 8, y / 8) && getSafe(x / 8 , y / 8).Seen;
+	bool canFarm = Selected && isFarm(x / 8, y / 8) && getSafe(x / 8 , y / 8).Seen &&
+		!Buildings[getSafe(x / 8, y / 8).Building].Farm.Occupied;
 	bool canBuild = true;
 	forEachUnit(i) {
 		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
@@ -241,6 +246,12 @@ void endDrawInterface(void) {
 		}
 		if(Units[i].Selected || UnitUnderMouse == i)
 			drawHealthBar(toMapX(Units[i].Position.x*8)+DrawSize, toMapY(Units[i].Position.y*8-2), i, 6);
+	}
+	BuildingHandle build = SelectedBuild ? SelectedBuild : getBuilding(x / 8, y / 8);
+	if(!numSelected && !UnitUnderMouse && build) {
+		tBuildingType *type = Buildings[build].Type;
+		drawBuildingHealthBar(toMapX(Buildings[build].Position.x*8-type->SizeX*2)-1, 
+			toMapY(Buildings[build].Position.y*8-type->SizeY*2)-DrawSize*3, build, type->SizeX*8);
 	}
 
 	if(MoveAnim > 0 && MoveTarget) drawTileFree(Units[MoveTarget].Position, 24-ceil(MoveAnim), 31);
@@ -283,21 +294,32 @@ void endDrawInterface(void) {
 		drawText(TextFormat("%d FPS", fps), 3, 8*DrawSize - 1, fps < 30 ? BadColor : GoodColor);
 	}
 
-	if(numSelected) {
+	if(numSelected || SelectedBuild) {
 		DrawRectangle(3, height - 3 - 16*DrawSize, 16*DrawSize, 16*DrawSize, Player[0].Color2);
 		drawTileFixed(3, height - 3 - 16*DrawSize, 16, 27, WHITE, DrawSize);
 		drawTileFixed(3 + 8*DrawSize, height - 3 - 16*DrawSize, 17, 27, WHITE, DrawSize);
 		drawTileFixed(3, height - 3 - 8*DrawSize, 16, 28, WHITE, DrawSize);
 		drawTileFixed(3 + 8*DrawSize, height - 3 - 8*DrawSize, 17, 28, WHITE, DrawSize);
-		i32 anim = (i32)(GetTime() * 4.0);
-		drawSpriteFixed(3 + 4*DrawSize, height-3-13*DrawSize, 0, anim % 4, 0);
-		if(numSelected > 1) {
-			char *text = TextFormat("%d", numSelected);
-			drawText(text, 3 + 8*DrawSize - measureText(text)/2, height - 8*DrawSize, WHITE);
-		} else drawHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, firstSelected, 10);
-
-		if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29))
-			killUnit(firstSelected);
+		if(numSelected) {
+			i32 anim = (i32)(GetTime() * 4.0);
+			drawSpriteFixed(3 + 4*DrawSize, height-3-13*DrawSize, 0, anim % 4, 0);
+			if(numSelected > 1) {
+				char *text = TextFormat("%d", numSelected);
+				drawText(text, 3 + 8*DrawSize - measureText(text)/2, height - 8*DrawSize, WHITE);
+			} else drawHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, firstSelected, 10);
+	
+			if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29))
+				killUnit(firstSelected);
+		} else if(SelectedBuild) {
+			tBuildingType *type = Buildings[SelectedBuild].Type;
+			u32 tx = 16 + (type->Icon & 0x0f), ty = 16 + (type->Icon >> 4);
+			drawTileFixed(4 + 4*DrawSize, height-3-13*DrawSize, tx, ty, WHITE, DrawSize);
+			drawBuildingHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, SelectedBuild, 10);
+			if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29)) {
+				destroyBuilding(SelectedBuild);
+				SelectedBuild = 0;
+			}
+		}
 		UIWidth = 3 + 32*DrawSize;
 		UIHeight = 3 + 16*DrawSize;
 	} else UIWidth = UIHeight = 0;

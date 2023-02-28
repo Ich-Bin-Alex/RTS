@@ -46,8 +46,8 @@ bool isTree(u32 x, u32 y) {
 
 bool isFarm(u32 x, u32 y) {
 	tTile tile = getSafe(x, y);
-	return (tile.Bottom == 0xa0 || tile.Bottom == 0xa1) ||
-	       (tile.Bottom == 0xb0 || tile.Bottom == 0xb1);
+	return (tile.Bottom == 0x70 || tile.Bottom == 0x71) ||
+	       (tile.Bottom == 0x80 || tile.Bottom == 0x81);
 }
 
 bool isReachable(u32 x, u32 y) {
@@ -55,6 +55,13 @@ bool isReachable(u32 x, u32 y) {
 	for(i32 i = 0; i < 8; i++)
 		if(!getSafe((i32)x + NX[i],(i32)y + NY[i]).Move) return true;
 	return false;
+}
+
+BuildingHandle getBuilding(u32 x, u32 y) {
+	tTile tile = getSafe(x, y);
+	u32 bx = tile.Bottom & 0x0f, by = tile.Bottom >> 4, tx = tile.Top & 0x0f, ty = tile.Top >> 4;
+	if((bx <= 8 && by >= 7 && by <= 12) || (tx <= 8 && ty >= 7 && ty <= 12)) return tile.Building;
+	return 0;
 }
 
 i32 toMapX(f32 x) {
