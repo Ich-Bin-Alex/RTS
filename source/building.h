@@ -14,7 +14,7 @@ typedef struct tBuildingType {
 	bool BlockMovement;
 	i32 SizeX, SizeY;
 	u8 Icon;
-	u8 Tiles[3][3];
+	u8 Tiles[3][3], RubbleTiles[3][3];
 } tBuildingType;
 
 extern tBuildingType Farm;
@@ -24,7 +24,7 @@ typedef struct tBuilding {
 	tBuildingType *Type;
 	PlayerHandle Player;
 	Vector2 Position;
-	i32 Health;
+	i32 Health, FirstX, FirstY;
 	union {
 		struct {
 			bool Occupied;

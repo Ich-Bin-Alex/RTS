@@ -18,7 +18,9 @@ tBuildingType Farm = {
 	SizeX: 2, SizeY: 2,
 	Icon: 0xd6,
 	Tiles: {{0x70, 0x80},
-	        {0x71, 0x81}}
+	        {0x71, 0x81}},
+	RubbleTiles: {{0x50, 0x60},
+	              {0x51, 0x61}}
 };
 
 BuildingHandle newBuilding(tBuilding build, u32 x, u32 y) {
@@ -36,6 +38,8 @@ BuildingHandle newBuilding(tBuilding build, u32 x, u32 y) {
 	Buildings[ret] = build;
 	Buildings[ret].Exists = true;
 	Buildings[ret].Position = (Vector2){0};
+	Buildings[ret].FirstX = x;
+	Buildings[ret].FirstY = y;
 	if(!Buildings[ret].Health) Buildings[ret].Health = build.Type->MaxHealth;
 
 	for(i32 xi = 0; xi < build.Type->SizeX; xi++) for(i32 yi = 0; yi < build.Type->SizeY; yi++) {
@@ -53,9 +57,10 @@ BuildingHandle newBuilding(tBuilding build, u32 x, u32 y) {
 }
 
 void destroyBuilding(BuildingHandle build) {
-	i32 x = Buildings[build].Position.x, y = Buildings[build].Position.y;
+	i32 x = Buildings[build].FirstX, y = Buildings[build].FirstY;
+	tBuildingType *type = Buildings[build].Type;
 	Buildings[build].Exists = false;
-	for(i32 xi = -3; xi < 3; xi++) for(i32 yi = -3; yi < 3; yi++) {
-		if(getSafe(x+xi, y+yi).Building == build) setSafe(x+xi, y+yi, (tTile){Bottom: 6});
+	for(i32 xi = 0; xi < type->SizeX; xi++) for(i32 yi = 0; yi < type->SizeY; yi++) {
+		setSafe(x+xi, y+yi, (tTile){Bottom: type->RubbleTiles[xi][yi]});
 	}
 }

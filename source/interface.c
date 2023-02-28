@@ -107,7 +107,8 @@ void updateInterface(void) {
 			   y > Units[i].Position.y*8 && y < Units[i].Position.y*8+8 && !Selected)
 				Units[i].Selected = Selected = true;
 		}
-		if(!Selected) SelectedBuild = getBuilding(x / 8, y / 8);
+		BuildingHandle build = getBuilding(x / 8, y / 8);
+		if(!Selected && !Buildings[build].Player) SelectedBuild = build;
 	} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !inUnitUI) {
 		if(RectSelect && abs(Select1.x - Select2.x) > 1 && abs(Select1.y - Select2.y) > 1) {
 			i32 x1 = (min(Select1.x, Select2.x) + CameraX) / DrawSize;
