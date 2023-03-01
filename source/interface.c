@@ -36,30 +36,56 @@ static void drawTextAnimated(char *text, i32 x, i32 y, Color color[5]) {
 	}
 }
 
-static bool drawActionButton(i32 x, i32 y, u32 tx, u32 ty) {
-	i32 mx = GetMouseX(), my = GetMouseY();
-	drawTileFixed(x, y, 20, 27, WHITE, DrawSize);
-	drawTileFixed(x + 8*DrawSize, y, 21, 27, WHITE, DrawSize);
-	drawTileFixed(x, y + 8*DrawSize, 20, 28, WHITE, DrawSize);
-	drawTileFixed(x + 8*DrawSize, y + 8*DrawSize, 21, 28, WHITE, DrawSize);
-	drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, WHITE, DrawSize);
-	if(mx > x && mx < x + 16*DrawSize && my > y && my < y + 16*DrawSize) {
-		if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-			drawTileFixed(x, y, 22, 27, WHITE, DrawSize);
-			drawTileFixed(x + 8*DrawSize, y, 23, 27, WHITE, DrawSize);
-			drawTileFixed(x, y + 8*DrawSize, 22, 28, WHITE, DrawSize);
-			drawTileFixed(x + 8*DrawSize, y + 8*DrawSize, 23, 28, WHITE, DrawSize);
-			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, WHITE, DrawSize);
-			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, GetColor(0x00000080), DrawSize);
-		} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) return true;
-	}
-	return false;
-}
-
 static i32 measureText(char *text) {
 	i32 length = 0;
 	for(i32 i = 0; text[i]; i++) length += CharSizes[(u32)text[i]] * FontSize;
 	return length;
+}
+
+typedef struct tTooltip {
+	char *Text;
+	bool Builder;
+	tUnitType *Unit;
+	tBuildingType *Build;
+	KeyboardKey Hotkey;
+} tTooltip;
+
+static void drawTooltip(tTooltip tooltip) {
+	i32 x = GetMouseX(), y = GetMouseY();
+	if(tooltip.Text) {
+		DrawRectangle(x-2*DrawSize, y-DrawSize*8, measureText(tooltip.Text)+4*DrawSize, 
+			6*FontSize+2*DrawSize, GetColor(0x00000080));
+		drawText(tooltip.Text, x, y-DrawSize*8, WHITE);
+	} else if(tooltip.Unit && !tooltip.Builder) {
+		DrawRectangle(x-2*DrawSize, y-DrawSize*8, measureText(tooltip.Unit->Name)+4*DrawSize, 
+			6*FontSize+2*DrawSize, GetColor(0x00000080));
+		drawText(tooltip.Unit->Name, x, y-DrawSize*8, WHITE);
+	} else if(tooltip.Build && !tooltip.Builder) {
+		DrawRectangle(x-2*DrawSize, y-DrawSize*8, measureText(tooltip.Build->Name)+4*DrawSize, 
+			6*FontSize+2*DrawSize, GetColor(0x00000080));
+		drawText(tooltip.Build->Name, x, y-DrawSize*8, WHITE);
+	}
+}
+
+static bool drawActionButton(i32 x, i32 y, u32 tx, u32 ty, tTooltip tooltip) {
+	i32 mx = GetMouseX(), my = GetMouseY();
+	drawTileFixed(x, y, 18, 27, WHITE, DrawSize);
+	drawTileFixed(x + 8*DrawSize, y, 19, 27, WHITE, DrawSize);
+	drawTileFixed(x, y + 8*DrawSize, 18, 28, WHITE, DrawSize);
+	drawTileFixed(x + 8*DrawSize, y + 8*DrawSize, 19, 28, WHITE, DrawSize);
+	drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, WHITE, DrawSize);
+	if(mx > x && mx < x + 16*DrawSize && my > y && my < y + 16*DrawSize) {
+		if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+			drawTileFixed(x, y, 20, 27, WHITE, DrawSize);
+			drawTileFixed(x + 8*DrawSize, y, 21, 27, WHITE, DrawSize);
+			drawTileFixed(x, y + 8*DrawSize, 20, 28, WHITE, DrawSize);
+			drawTileFixed(x + 8*DrawSize, y + 8*DrawSize, 21, 28, WHITE, DrawSize);
+			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, WHITE, DrawSize);
+			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, GetColor(0x00000080), DrawSize);
+		} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) return true;
+		else drawTooltip(tooltip);
+	}
+	return false;
 }
 
 static void drawHealthBar(i32 x, i32 y, UnitHandle unit, i32 scale) {
@@ -224,7 +250,8 @@ void beginDrawInterface(void) {
 }
 
 void endDrawInterface(void) {
-	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
+	i32 mx = GetMouseX(), my = GetMouseY();
+	Vector2 mouse = (Vector2){mx + CameraX, my + CameraY};
 	i32 x = mouse.x/DrawSize, y = mouse.y/DrawSize, numSelected = 0;
 	u32 width = GetScreenWidth(), height = GetScreenHeight();
 	UnitUnderMouse = 0;
@@ -233,6 +260,8 @@ void endDrawInterface(void) {
 	bool canFarm = Selected && isFarm(x / 8, y / 8) && getSafe(x / 8 , y / 8).Seen &&
 		!Buildings[getSafe(x / 8, y / 8).Building].Farm.Occupier;
 	bool canBuild = true;
+	bool inUnitUI = (my > height - 3 - 16*DrawSize && mx <= UIWidth) ||
+	                (mx <= 3 + 16*DrawSize && my >= height - UIHeight);
 	forEachUnit(i) {
 		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
 		if(!UnitUnderMouse && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
@@ -308,27 +337,35 @@ void endDrawInterface(void) {
 				drawText(text, 3 + 8*DrawSize - measureText(text)/2, height - 8*DrawSize, WHITE);
 			} else drawHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, firstSelected, 10);
 	
-			if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29))
-				killUnit(firstSelected);
+			if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29, 
+				(tTooltip){Text: "Kill unit"})) killUnit(firstSelected);
+
+			if(mx < 3 + 16*DrawSize && my >= height - 3 - 16*DrawSize) 
+				drawTooltip((tTooltip){Unit: Units[firstSelected].Type, Builder: false});
 		} else if(SelectedBuild) {
 			tBuildingType *type = Buildings[SelectedBuild].Type;
 			u32 tx = 16 + (type->Icon & 0x0f), ty = 16 + (type->Icon >> 4);
 			drawTileFixed(4 + 4*DrawSize, height-3-13*DrawSize, tx, ty, WHITE, DrawSize);
 			drawBuildingHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, SelectedBuild, 10);
-			if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29)) {
+
+			if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29, 
+			  (tTooltip){Text: "Destroy building"})) {
 				destroyBuilding(SelectedBuild);
 				SelectedBuild = 0;
 			}
+
+			if(mx < 3 + 16*DrawSize && my >= height - 3 - 16*DrawSize) 
+				drawTooltip((tTooltip){Build: Buildings[SelectedBuild].Type, Builder: false});
 		}
 		UIWidth = 3 + 32*DrawSize;
 		UIHeight = 3 + 16*DrawSize;
 	} else UIWidth = UIHeight = 0;
 
-	if(canChop) {
+	if(canChop && !inUnitUI) {
 		i32 anim = GetTime() * 5;
-		drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 21 + anim % 3, 30, WHITE, DrawSize);
-	} else if(canFarm) {
+		drawTileFixed(mx - 3, my - 3, 21 + anim % 3, 30, WHITE, DrawSize);
+	} else if(canFarm && !inUnitUI) {
 		i32 anim = GetTime() * 5;
-		drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 24 + anim % 3, 30, WHITE, DrawSize);
-	} else drawTileFixed(GetMouseX() - 3, GetMouseY() - 3, 20, 30, WHITE, DrawSize);
+		drawTileFixed(mx - 3, my - 3, 24 + anim % 3, 30, WHITE, DrawSize);
+	} else drawTileFixed(mx - 3, my - 3, 20, 30, WHITE, DrawSize);
 }
