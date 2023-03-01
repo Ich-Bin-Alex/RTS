@@ -349,9 +349,6 @@ void beginDrawMap(void) {
 			Map[x][y].Blood -= GetFrameTime()*0.0125;
 			if(Map[x][y].Blood < 0) Map[x][y].Blood = 0;
 		}
-		//if(Map[x][y].Bottom == 0x50 || Map[x][y].Bottom == 0x51 || Map[x][y].Bottom == 0x60 || Map[x][y].Bottom == 0x61) {
-		//	drawTile(x, y, anim % 3, 9, 1.0);
-		//}
 	}
 }
 

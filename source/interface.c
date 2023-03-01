@@ -51,18 +51,20 @@ typedef struct tTooltip {
 } tTooltip;
 
 static void drawTooltip(tTooltip tooltip) {
-	i32 x = GetMouseX(), y = GetMouseY();
+	i32 x = GetMouseX(), y = GetMouseY(), size = 4*DrawSize;
+	if(tooltip.Text) size += measureText(tooltip.Text);
+	else if(tooltip.Unit) size += measureText(tooltip.Unit->Name);
+	else if(tooltip.Build) size += measureText(tooltip.Build->Name);
+	if(x + size > GetScreenWidth()) x -= size;
+	if(y - DrawSize*9 < 0) y += DrawSize*9;
 	if(tooltip.Text) {
-		DrawRectangle(x-2*DrawSize, y-DrawSize*8, measureText(tooltip.Text)+4*DrawSize, 
-			6*FontSize+2*DrawSize, GetColor(0x00000080));
+		DrawRectangle(x-2*DrawSize, y-DrawSize*8, size, 6*FontSize+2*DrawSize, GetColor(0x00000080));
 		drawText(tooltip.Text, x, y-DrawSize*8, WHITE);
 	} else if(tooltip.Unit && !tooltip.Builder) {
-		DrawRectangle(x-2*DrawSize, y-DrawSize*8, measureText(tooltip.Unit->Name)+4*DrawSize, 
-			6*FontSize+2*DrawSize, GetColor(0x00000080));
+		DrawRectangle(x-2*DrawSize, y-DrawSize*8, size, 6*FontSize+2*DrawSize, GetColor(0x00000080));
 		drawText(tooltip.Unit->Name, x, y-DrawSize*8, WHITE);
 	} else if(tooltip.Build && !tooltip.Builder) {
-		DrawRectangle(x-2*DrawSize, y-DrawSize*8, measureText(tooltip.Build->Name)+4*DrawSize, 
-			6*FontSize+2*DrawSize, GetColor(0x00000080));
+		DrawRectangle(x-2*DrawSize, y-DrawSize*8, size, 6*FontSize+2*DrawSize, GetColor(0x00000080));
 		drawText(tooltip.Build->Name, x, y-DrawSize*8, WHITE);
 	}
 }
@@ -108,16 +110,17 @@ static void drawBuildingHealthBar(i32 x, i32 y, BuildingHandle build, i32 scale)
 
 void updateInterface(void) {
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
-	Vector2 mouse = (Vector2){GetMouseX() + CameraX, GetMouseY() + CameraY};
-	bool inUnitUI = (GetMouseY() > height - 3 - 16*DrawSize && GetMouseX() <= UIWidth) ||
-	                (GetMouseX() <= 3 + 16*DrawSize && GetMouseY() >= height - UIHeight);
+	i32 mx = GetMouseX(), my = GetMouseY();
+	i32 x = (mx + CameraX)/DrawSize, y = (my + CameraY)/DrawSize;
+	bool inUnitUI = (my > height - 3 - 16*DrawSize && mx <= UIWidth) ||
+	                (mx <= 3 + 16*DrawSize && my >= height - UIHeight);
 
-	if(IsKeyDown(KEY_RIGHT) || GetMouseX() >= width - 15) CameraX += round(1000.0 * GetFrameTime());
-	else if(IsKeyDown(KEY_LEFT) || (GetMouseX() <= 15 && !inUnitUI))
+	if(IsKeyDown(KEY_RIGHT) || mx >= width - 15) CameraX += round(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_LEFT) || (mx <= 15 && !inUnitUI))
 		CameraX -= round(1000.0 * GetFrameTime());
-	if(IsKeyDown(KEY_DOWN) || (GetMouseY() >= height - 15 && !inUnitUI))
+	if(IsKeyDown(KEY_DOWN) || (my >= height - 15 && !inUnitUI))
 		CameraY += round(1000.0 * GetFrameTime());
-	else if(IsKeyDown(KEY_UP) || GetMouseY() <= 15) CameraY -= round(1000.0 * GetFrameTime());
+	else if(IsKeyDown(KEY_UP) || my <= 15) CameraY -= round(1000.0 * GetFrameTime());
 	if(CameraX > MAP_SIZE*8*DrawSize-width) CameraX = MAP_SIZE*8*DrawSize-width;
 	if(CameraX < 0) CameraX = 0;
 	if(CameraY > MAP_SIZE*8*DrawSize-height) CameraY = MAP_SIZE*8*DrawSize-height;
@@ -126,7 +129,6 @@ void updateInterface(void) {
 	if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !inUnitUI) {
 		Selected = RectSelect = false;
 		SelectedBuild = 0;
-		i32 x = mouse.x/DrawSize, y = mouse.y/DrawSize;
 		forEachUnit(i) {
 			Units[i].Selected = false;
 			if(x > Units[i].Position.x*8 && x < Units[i].Position.x*8+8 && !Units[i].Player &&
@@ -155,7 +157,7 @@ void updateInterface(void) {
 		RectSelect = true;
 	} else if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Selected) {
 		RectSelect = false;
-		MovePos = (Vector2){mouse.x / DrawSize / 8.0, mouse.y / DrawSize / 8.0};
+		MovePos = (Vector2){x / 8.0, y / 8.0};
 		tMoveOrder *move;
 		MoveTarget = 0;
 		bool canChop = isTree(MovePos.x, MovePos.y) && getSafe(MovePos.x, MovePos.y).Seen;
@@ -251,8 +253,7 @@ void beginDrawInterface(void) {
 
 void endDrawInterface(void) {
 	i32 mx = GetMouseX(), my = GetMouseY();
-	Vector2 mouse = (Vector2){mx + CameraX, my + CameraY};
-	i32 x = mouse.x/DrawSize, y = mouse.y/DrawSize, numSelected = 0;
+	i32 x = (mx + CameraX)/DrawSize, y = (my + CameraY)/DrawSize, numSelected = 0;
 	u32 width = GetScreenWidth(), height = GetScreenHeight();
 	UnitUnderMouse = 0;
 	UnitHandle firstSelected = 0;
@@ -264,7 +265,7 @@ void endDrawInterface(void) {
 	                (mx <= 3 + 16*DrawSize && my >= height - UIHeight);
 	forEachUnit(i) {
 		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
-		if(!UnitUnderMouse && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
+		if(!UnitUnderMouse && !inUnitUI && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
 			UnitUnderMouse = i;
 			if(Units[i].Player && !getSafe(x2, y2).Seen) UnitUnderMouse = 0;
 		}
@@ -279,7 +280,8 @@ void endDrawInterface(void) {
 			drawHealthBar(toMapX(Units[i].Position.x*8)+DrawSize, toMapY(Units[i].Position.y*8-2), i, 6);
 	}
 	BuildingHandle build = SelectedBuild ? SelectedBuild : getBuilding(x / 8, y / 8);
-	if(build && ((!UnitUnderMouse && !SelectedBuild) || (numSelected && SelectedBuild) || SelectedBuild))
+	if(build && !inUnitUI && 
+	  ((!UnitUnderMouse && !SelectedBuild) || (numSelected && SelectedBuild) || SelectedBuild))
 		drawBuildingHealthBar(toMapX(Buildings[build].FirstX*8), 
 			toMapY(Buildings[build].FirstY*8)-DrawSize*3, build, Buildings[build].Type->SizeX*8);
 
@@ -315,6 +317,11 @@ void endDrawInterface(void) {
 	}
 	drawText(text, width - measureText(text) - offset, 10 + 16*DrawSize, TextColor);
 	drawTileFixed(width - 3 - 8*DrawSize, 7 + 16*DrawSize, 18, 29, WHITE, DrawSize);
+	if(mx > width - 3 - 8*DrawSize) {
+		if(my < 3+8*DrawSize) drawTooltip((tTooltip){Text: "Population"});
+		else if(my < 5+16*DrawSize) drawTooltip((tTooltip){Text: "Food"});
+		else if(my < 7+24*DrawSize) drawTooltip((tTooltip){Text: "Wood"});
+	}
 
 	if(ShowDebug) {
 		i32 fps = GetFPS();
@@ -338,7 +345,14 @@ void endDrawInterface(void) {
 			} else drawHealthBar(3 + 3*DrawSize, height - 3 - 4*DrawSize, firstSelected, 10);
 	
 			if(drawActionButton(3 + 16*DrawSize, height - 3 - 16*DrawSize, 21, 29, 
-				(tTooltip){Text: "Kill unit"})) killUnit(firstSelected);
+				(tTooltip){Text: "Kill unit"})) {
+				killUnit(firstSelected);
+				firstSelected = 0;
+				if(--numSelected <= 0) {
+					Select1 = Select2 = (Vector2){0};
+					Selected = RectSelect = false;
+				}
+			}
 
 			if(mx < 3 + 16*DrawSize && my >= height - 3 - 16*DrawSize) 
 				drawTooltip((tTooltip){Unit: Units[firstSelected].Type, Builder: false});
@@ -352,6 +366,8 @@ void endDrawInterface(void) {
 			  (tTooltip){Text: "Destroy building"})) {
 				destroyBuilding(SelectedBuild);
 				SelectedBuild = 0;
+				Select1 = Select2 = (Vector2){0};
+				Selected = RectSelect = false;
 			}
 
 			if(mx < 3 + 16*DrawSize && my >= height - 3 - 16*DrawSize) 
