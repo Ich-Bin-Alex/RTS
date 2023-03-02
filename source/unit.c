@@ -5,6 +5,7 @@
 #include "source/game.h"
 #include "source/map.h"
 #include "source/unit.h"
+#include "source/building.h"
 
 u32 NumMoveOrders, NumUnits, AllocatedUnits, UnitPtr;
 tUnit *Units;
@@ -16,7 +17,8 @@ tUnitType Peasent = {
 	Attack: 1,
 	Speed: 4.0,
 	ViewDistance: 7,
-	CanChop: true, CanFarm: true, CanBuild: true
+	CanChop: true, CanFarm: true, CanBuild: true,
+	Buildings: {&Farm, NULL}
 };
 
 static void updateFlow(tMoveOrder *order) {

@@ -5,7 +5,9 @@
 #include "source/game.h"
 
 u32 FrameCount = 0;
-tPlayer Player[8];
+tPlayer Player[8] = {
+	{Wood: 50}
+};
 Texture Tileset;
 i32 DrawSize = 3, FontSize = 2;
 Color TextColor, GoodColor, BadColor, HealthColor1, HealthColor2, HealthColor3;

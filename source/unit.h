@@ -40,6 +40,7 @@ typedef struct tUnitType {
 	f32 Speed;
 	u32 FoodCost, WoodCost;
 	bool CanChop, CanFarm, CanBuild;
+	tBuildingType *Buildings[];
 } tUnitType;
 
 typedef enum eAction {
