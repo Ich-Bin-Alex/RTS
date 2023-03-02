@@ -77,6 +77,11 @@ typedef struct tUnit {
 			Vector2 Target;
 			BuildingHandle Building;
 		} Farm;
+		struct {
+			f32 Timer;
+			Vector2 Target;
+			BuildingHandle Building;
+		} Build;
 	};
 	u8 Direction, Animation;
 	u32 Unmoveable; // How many frames the unit didn't move. Used to prevent it from getting stuck

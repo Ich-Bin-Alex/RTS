@@ -16,6 +16,7 @@ static Vector2 Select1, Select2, MovePos;
 static bool ShowDebug = false;
 static i32 UIWidth, UIHeight;
 static tBuildingType *BuildLock = NULL;
+static bool BuildOk[3][3] = {false};
 
 static const u32 IconTY = 29, PopIconTX = 16, FoodIconTX = 17, WoodIconTX = 18;
 
@@ -156,6 +157,25 @@ void updateInterface(void) {
 
 	if(BuildLock) {
 		if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) BuildLock = NULL;
+		else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+			bool ok = true;
+			for(i32 xi = 0; xi < BuildLock->SizeX; xi++) for(i32 yi = 0; yi < BuildLock->SizeY; yi++)
+				if(!BuildOk[xi][yi]) ok = false;
+			if(ok && Player[0].Food >= BuildLock->FoodCost && Player[0].Wood >= BuildLock->WoodCost) {
+				Player[0].Food -= BuildLock->FoodCost;
+				Player[0].Wood -= BuildLock->WoodCost;
+				forEachUnit(i) if(Units[i].Selected) {
+					tMoveOrder *move = newMoveOrder((tMoveOrder){Target: (Vector2){x/8, y/8}});
+					moveUnit(i, move);
+					Units[i].Action = ACTION_MOVE_AND_BUILD;
+					Units[i].Build.Target = (Vector2){x/8, y/8};
+					Units[i].Build.Building = newBuilding(
+						(tBuilding){Type: BuildLock, Player: 0, Finished: false}, x/8, y/8);
+					break;
+				}
+				BuildLock = NULL;
+			}
+		}
 		return;
 	}
 
@@ -195,9 +215,9 @@ void updateInterface(void) {
 		MoveTarget = 0;
 		bool canChop = isTree(MovePos.x, MovePos.y) && getSafe(MovePos.x, MovePos.y).Seen;
 		bool canFarm = isFarm(MovePos.x, MovePos.y) && getSafe(MovePos.x, MovePos.y).Seen &&
+			Buildings[getSafe(MovePos.x, MovePos.y).Building].Finished &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Player &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Farm.Occupier;
-		bool canBuild = true;
 		UnitHandle farmer = 0;
 		if(UnitUnderMouse && Units[UnitUnderMouse].Player) {
 			MoveTarget = UnitUnderMouse;
@@ -215,7 +235,6 @@ void updateInterface(void) {
 		forEachUnit(i) if(Units[i].Selected) {
 			if(!Units[i].Type->CanChop) canChop = false;
 			if(!Units[i].Type->CanFarm) canFarm = false;
-			if(!Units[i].Type->CanBuild) canBuild = false;
 		}
 		forEachUnit(i) if(Units[i].Selected) {
 			mid = Vector2Add(mid, Units[i].Position);
@@ -292,10 +311,20 @@ void endDrawInterface(void) {
 	UnitHandle firstSelected = 0;
 	bool canChop = Selected && isTree(x / 8, y / 8) && getSafe(x / 8 , y / 8).Seen;
 	bool canFarm = Selected && isFarm(x / 8, y / 8) && getSafe(x / 8 , y / 8).Seen &&
+		Buildings[getSafe(x / 8, y / 8).Building].Finished &&
 		!Buildings[getSafe(x / 8, y / 8).Building].Farm.Occupier;
 	bool canBuild = true;
 	bool inUI = (my > height - 3 - 16*DrawSize && mx <= UIWidth) ||
 	            (mx <= 3 + 16*DrawSize && my >= height - UIHeight);
+
+	if(BuildLock) {
+		for(i32 xi = 0; xi < BuildLock->SizeX; xi++) for(i32 yi = 0; yi < BuildLock->SizeY; yi++) {
+			tTile tile = getSafe(x/8 + xi, y/8 + yi);
+			BuildOk[xi][yi] = !tile.Move && tile.Seen && !getBuilding(x/8 + xi, y/8 + yi);
+			drawTile(x/8 + xi, y/8 + yi, 22, 27 + !BuildOk[xi][yi], 10);
+		}
+	}
+
 	forEachUnit(i) {
 		f32 x2 = Units[i].Position.x, y2 = Units[i].Position.y;
 		if(!UnitUnderMouse && !inUI && x > x2*8 && x < x2*8+8 && y > y2*8 && y < y2*8+8) {
@@ -422,10 +451,10 @@ void endDrawInterface(void) {
 		UIWidth = 3 + 32*DrawSize;
 	} else UIWidth = UIHeight = 0;
 
-	if(canChop && !inUI) {
+	if(canChop && !inUI && !BuildLock) {
 		i32 anim = GetTime() * 5;
 		drawTileFixed(mx - 3, my - 3, 21 + anim % 3, 30, WHITE, DrawSize);
-	} else if(canFarm && !inUI) {
+	} else if(canFarm && !inUI && !BuildLock) {
 		i32 anim = GetTime() * 5;
 		drawTileFixed(mx - 3, my - 3, 24 + anim % 3, 30, WHITE, DrawSize);
 	} else drawTileFixed(mx - 3, my - 3, 20, 30, WHITE, DrawSize);

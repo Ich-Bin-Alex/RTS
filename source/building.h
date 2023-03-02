@@ -20,7 +20,7 @@ typedef struct tBuildingType {
 extern tBuildingType Farm;
 
 typedef struct tBuilding {
-	bool Exists;
+	bool Exists, Finished;
 	tBuildingType *Type;
 	PlayerHandle Player;
 	i32 Health, FirstX, FirstY;
@@ -28,6 +28,9 @@ typedef struct tBuilding {
 		struct {
 			u32 Occupier;
 		} Farm;
+		struct {
+			u32 Occupier;
+		} Build;
 	};
 } tBuilding;
 

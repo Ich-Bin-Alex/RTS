@@ -40,7 +40,7 @@ BuildingHandle newBuilding(tBuilding build, u32 x, u32 y) {
 	Buildings[ret].Exists = true;
 	Buildings[ret].FirstX = x;
 	Buildings[ret].FirstY = y;
-	if(!Buildings[ret].Health) Buildings[ret].Health = build.Type->MaxHealth;
+	if(!build.Health && build.Finished) Buildings[ret].Health = build.Type->MaxHealth;
 
 	for(i32 xi = 0; xi < build.Type->SizeX; xi++) for(i32 yi = 0; yi < build.Type->SizeY; yi++)
 		setSafe(x+xi, y+yi, (tTile){
@@ -56,7 +56,9 @@ void destroyBuilding(BuildingHandle build) {
 	i32 x = Buildings[build].FirstX, y = Buildings[build].FirstY;
 	tBuildingType *type = Buildings[build].Type;
 	Buildings[build].Exists = false;
-	if(Buildings[build].Type == &Farm) Units[Buildings[build].Farm.Occupier].Action = ACTION_MOVE;
+	if(Buildings[build].Finished) {
+		if(Buildings[build].Type == &Farm) Units[Buildings[build].Farm.Occupier].Action = ACTION_MOVE;
+	} else Units[Buildings[build].Build.Occupier].Action = ACTION_MOVE;
 	for(i32 xi = 0; xi < type->SizeX; xi++) for(i32 yi = 0; yi < type->SizeY; yi++)
 		setSafe(x+xi, y+yi, (tTile){Bottom: type->RubbleTiles[xi][yi], 
 		                            Seen: getSafe(x+xi, y+yi).Seen});

@@ -160,6 +160,8 @@ void killUnit(UnitHandle unit) {
 		refSafe(Units[unit].Chop.TreeX, Units[unit].Chop.TreeY)->OccupiedTree--;
 	else if(Units[unit].Action == ACTION_FARM || Units[unit].Action == ACTION_MOVE_AND_FARM)
 		Buildings[Units[unit].Farm.Building].Farm.Occupier = 0;
+	else if(Units[unit].Action == ACTION_BUILD || Units[unit].Action == ACTION_MOVE_AND_BUILD)
+		Buildings[Units[unit].Build.Building].Build.Occupier = 0;
 	Player[Units[unit].Player].Population--;
 	NumUnits--;
 }
@@ -248,12 +250,12 @@ void updateUnits(void) {
 			f32 dist = sqrtf((axis.x*axis.x) + (axis.y*axis.y));
 			if(dist < 0.8) {
 				Vector2 delta = Vector2Scale((Vector2){axis.x/dist,axis.y/dist}, 0.5*(0.8 - dist));
-				if(Units[i].Action != ACTION_FARM) {
+				if(Units[i].Action != ACTION_FARM && Units[i].Action != ACTION_BUILD) {
 					u32 x2 = round(Units[i].Position.x+delta.x), y2 = round(Units[i].Position.y+delta.y);
 					if(!getSafe(x2, y2).Move && Units[i].Action != ACTION_CHOP_TREE)
 						Units[i].Position = Vector2Add(Units[i].Position, delta);
 				}
-				if(Units[j].Action != ACTION_FARM) {
+				if(Units[j].Action != ACTION_FARM && Units[j].Action != ACTION_BUILD) {
 					u32 x3 = round(Units[j].Position.x-delta.x), y3 = round(Units[j].Position.y-delta.y);
 					if(!getSafe(x3, y3).Move && !Units[j].MoveOrder && Units[j].Player == Units[i].Player)
 						Units[j].Position = Vector2Subtract(Units[j].Position, delta);
@@ -268,6 +270,8 @@ void updateUnits(void) {
 						Units[i].Chop.TreeX = Units[i].Chop.TreeY = 0;
 					} else if(Units[i].Action == ACTION_FARM || Units[i].Action == ACTION_MOVE_AND_FARM)
 						Buildings[Units[i].Farm.Building].Farm.Occupier = 0;
+					else if(Units[i].Action == ACTION_BUILD || Units[i].Action == ACTION_MOVE_AND_BUILD)
+						Buildings[Units[i].Build.Building].Build.Occupier = 0;
 					Units[i].Attack.Unit = j;
 					Units[i].Action = ACTION_ATTACK;
 				}
@@ -417,6 +421,31 @@ void updateUnits(void) {
 				}
 				Units[i].Speed = (Vector2){0};
 			}
+		} else if(Units[i].Action == ACTION_BUILD) {
+			tBuilding *build = &Buildings[Units[i].Build.Building];
+			if(Vector2Distance(Units[i].Position, Units[i].Build.Target) > 0.1) {
+				Vector2 axis = Vector2Subtract(Units[i].Position, Units[i].Build.Target);
+				Units[i].Speed =
+					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
+			} else {
+				Units[i].Direction = 0;
+				if(Units[i].Build.Timer < GetTime() - 0.1) {
+					Buildings[Units[i].Build.Building].Health++;
+					Units[i].Build.Timer = GetTime();
+				}
+				if(build->Health >= build->Type->MaxHealth) {
+					build->Finished = true;
+					build->Health = build->Type->MaxHealth;
+					if(build->Type == &Farm) {
+						Units[i].Action = ACTION_FARM;
+						Units[i].Farm.Timer = GetTime() + (f32)GetRandomValue(0, 500)/100.0;
+						Units[i].Farm.Target = (Vector2){build->FirstX + build->Type->SizeX/2 - 0.5,
+						                                 build->FirstY + build->Type->SizeY/2 - 0.75};
+						build->Farm.Occupier = i;
+					} else Units[i].Action = ACTION_MOVE;
+				}
+				Units[i].Speed = (Vector2){0};
+			}
 		}
 		
 		Units[i].Speed = Vector2Scale(Units[i].Speed, GetFrameTime());
@@ -488,6 +517,9 @@ void updateUnits(void) {
 				Units[i].Action = ACTION_FARM;
 				Units[i].Farm.Timer = GetTime() + (f32)GetRandomValue(0, 500)/100.0;
 				Buildings[Units[i].Farm.Building].Farm.Occupier = i;
+			} else if(Units[i].Action == ACTION_MOVE_AND_BUILD) {
+				Units[i].Action = ACTION_BUILD;
+				Buildings[Units[i].Build.Building].Build.Occupier = i;
 			}
 		}
 	}
@@ -499,6 +531,8 @@ void moveUnit(UnitHandle unit, tMoveOrder *order) {
 		refSafe(Units[unit].Chop.TreeX, Units[unit].Chop.TreeY)->OccupiedTree--;
 	else if(Units[unit].Action == ACTION_FARM || Units[unit].Action == ACTION_MOVE_AND_FARM)
 		Buildings[Units[unit].Farm.Building].Farm.Occupier = 0;
+	else if(Units[unit].Action == ACTION_BUILD || Units[unit].Action == ACTION_MOVE_AND_BUILD)
+		Buildings[Units[unit].Build.Building].Build.Occupier = 0;
 	if(order) order->References++;
 	if(Units[unit].MoveOrder)
 		if(--Units[unit].MoveOrder->References <= 0) freeMoveOrder(Units[unit].MoveOrder);
