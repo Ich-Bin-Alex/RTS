@@ -189,7 +189,7 @@ void updateInterface(void) {
 				Units[i].Selected = Selected = true;
 		}
 		BuildingHandle build = getBuilding(x / 8, y / 8);
-		if(!Selected && !Buildings[build].Player) SelectedBuild = build;
+		if(!Selected && !Buildings[build].Player && !Selected) SelectedBuild = build;
 	} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !inUI) {
 		if(RectSelect && abs(Select1.x - Select2.x) > 1 && abs(Select1.y - Select2.y) > 1) {
 			i32 x1 = (min(Select1.x, Select2.x) + CameraX) / DrawSize;
@@ -203,6 +203,7 @@ void updateInterface(void) {
 					Units[i].Selected = Selected = true;
 			}
 			RectSelect = false;
+			if(Selected) SelectedBuild = 0;
 		}
 	} else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !inUI) {
 		if(!RectSelect) Select1 = GetMousePosition();
@@ -341,9 +342,12 @@ void endDrawInterface(void) {
 		if(Units[i].Selected || UnitUnderMouse == i)
 			drawHealthBar(toMapX(Units[i].Position.x*8)+DrawSize, toMapY(Units[i].Position.y*8-2), i, 6);
 	}
-	BuildingHandle build = SelectedBuild ? SelectedBuild : getBuilding(x / 8, y / 8);
-	if(build && ((!UnitUnderMouse && !SelectedBuild && !inUI) || 
-	  (numSelected && SelectedBuild && !inUI) || SelectedBuild))
+	if(SelectedBuild)
+		drawBuildingHealthBar(toMapX(Buildings[SelectedBuild].FirstX*8), 
+			toMapY(Buildings[SelectedBuild].FirstY*8)-DrawSize*3, SelectedBuild, 
+			Buildings[SelectedBuild].Type->SizeX*8);
+	BuildingHandle build = getBuilding(x / 8, y / 8);
+	if(build && !UnitUnderMouse && !inUI)
 		drawBuildingHealthBar(toMapX(Buildings[build].FirstX*8), 
 			toMapY(Buildings[build].FirstY*8)-DrawSize*3, build, Buildings[build].Type->SizeX*8);
 
