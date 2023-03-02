@@ -21,7 +21,9 @@ tBuildingType Farm = {
 	Tiles: {{0x70, 0x80},
 	        {0x71, 0x81}},
 	RubbleTiles: {{0x50, 0x60},
-	              {0x51, 0x61}}
+	              {0x51, 0x61}},
+	ConstructTiles: {{0x90, 0xa0},
+	                 {0x91, 0xa1}}
 };
 
 BuildingHandle newBuilding(tBuilding build, u32 x, u32 y) {
@@ -44,9 +46,9 @@ BuildingHandle newBuilding(tBuilding build, u32 x, u32 y) {
 
 	for(i32 xi = 0; xi < build.Type->SizeX; xi++) for(i32 yi = 0; yi < build.Type->SizeY; yi++)
 		setSafe(x+xi, y+yi, (tTile){
-			Bottom: build.Type->Tiles[xi][yi], 
-			Seen: getSafe(x+xi, y+yi).Seen, 
-			Building: ret, 
+			Bottom: build.Finished ? build.Type->Tiles[xi][yi] : build.Type->ConstructTiles[xi][yi],
+			Seen: getSafe(x+xi, y+yi).Seen,
+			Building: ret,
 			Move: build.Type->BlockMovement ? 0xff : 0});
 
 	return ret;

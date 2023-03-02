@@ -439,6 +439,14 @@ void updateUnits(void) {
 				if(build->Health >= build->Type->MaxHealth) {
 					build->Finished = true;
 					build->Health = build->Type->MaxHealth;
+					u32 x2 = build->FirstX, y2 = build->FirstY;
+					for(i32 xi = 0; xi < build->Type->SizeX; xi++) 
+					for(i32 yi = 0; yi < build->Type->SizeY; yi++)
+						setSafe(x2+xi, y2+yi, (tTile){
+							Bottom: build->Type->Tiles[xi][yi],
+							Seen: getSafe(x2+xi, y2+yi).Seen,
+							Building: getSafe(x2+xi, y2+yi).Building,
+							Move: build->Type->BlockMovement ? 0xff : 0});
 					if(build->Type == &Farm) {
 						Units[i].Action = ACTION_FARM;
 						Units[i].Farm.Timer = GetTime() + (f32)GetRandomValue(0, 500)/100.0;

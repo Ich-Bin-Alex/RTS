@@ -14,7 +14,7 @@ typedef struct tBuildingType {
 	bool BlockMovement;
 	i32 SizeX, SizeY;
 	u8 Icon;
-	u8 Tiles[3][3], RubbleTiles[3][3];
+	u8 Tiles[3][3], RubbleTiles[3][3], ConstructTiles[3][3];
 } tBuildingType;
 
 extern tBuildingType Farm;
