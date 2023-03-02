@@ -220,6 +220,9 @@ void drawUnits(void) {
 			offset = 8;
 			break;
 		case ACTION_BUILD:
+			if(Units[i].Speed.x || Units[i].Speed.y) goto lMove;
+			anim = (Units[i].Animation + floor(GetTime() * 8.0));
+			offset = 9;
 			break;
 		}
 		drawSprite(Units[i].Position, Units[i].Player, anim % 4, offset + Units[i].Direction);
