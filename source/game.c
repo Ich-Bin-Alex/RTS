@@ -53,7 +53,7 @@ void updateGame(void) {
 	FrameCount++;
 	for(i32 i = 0; i < 8; i++) Player[i].FoodIncome = Player[i].WoodIncome = 0;
 	if(IsWindowResized()) {
-		DrawSize = max(3, (GetScreenWidth() * GetScreenHeight()) / 262144);
+		DrawSize = max(3, (GetScreenWidth() * GetScreenHeight()) / 380000);
 		FontSize = DrawSize - 1;
 	}
 }

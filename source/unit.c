@@ -93,6 +93,13 @@ static void updateFlow(tMoveOrder *order) {
 	order->LastUpdate = FrameCount;
 }
 
+static bool collide(UnitHandle unit, Vector2 move) {
+	u32 x = round(Units[unit].Position.x + move.x), y = round(Units[unit].Position.y + move.y);
+	if(getSafe(x, round(Units[unit].Position.y)).Move) return true;
+	if(getSafe(round(Units[unit].Position.x), y).Move) return true;
+	return false;
+}
+
 tMoveOrder *newMoveOrder(tMoveOrder order) {
 	if((u32)order.Target.x >= MAP_SIZE-1 || (u32)order.Target.y >= MAP_SIZE-1) return NULL;
 
@@ -256,11 +263,13 @@ void drawUnits(void) {
 			break;
 		case ACTION_FARM:
 			if(Units[i].Speed.x || Units[i].Speed.y) goto lMove;
+			Units[i].Direction = 0;
 			anim = (Units[i].Animation + floor(GetTime() * 6.0));
 			offset = 8;
 			break;
 		case ACTION_BUILD:
 			if(Units[i].Speed.x || Units[i].Speed.y) goto lMove;
+			Units[i].Direction = 0;
 			anim = (Units[i].Animation + floor(GetTime() * 8.0));
 			offset = 9;
 			break;
@@ -293,13 +302,11 @@ void updateUnits(void) {
 			f32 dist = sqrtf((axis.x*axis.x) + (axis.y*axis.y));
 			if(dist < 0.8) {
 				Vector2 delta = Vector2Scale((Vector2){axis.x/dist,axis.y/dist}, 0.5*(0.8 - dist));
-				u32 x2 = round(Units[i].Position.x+delta.x), y2 = round(Units[i].Position.y+delta.y);
-				u32 x3 = round(Units[j].Position.x-delta.x), y3 = round(Units[j].Position.y-delta.y);
 				if(Units[i].Action != ACTION_FARM && Units[i].Action != ACTION_BUILD && 
-				  !getSafe(x2, y2).Move && Units[i].Action != ACTION_CHOP)
+				  !collide(i, delta) && Units[i].Action != ACTION_CHOP)
 					Units[i].Position = Vector2Add(Units[i].Position, delta);
-				if(Units[j].Action != ACTION_FARM && Units[j].Action != ACTION_BUILD && 
-				  !getSafe(x3, y3).Move && !Units[j].MoveOrder && Units[j].Player == Units[i].Player)
+				if(Units[j].Action != ACTION_FARM && Units[j].Action != ACTION_BUILD && !Units[j].MoveOrder && 
+				  !collide(j, Vector2Negate(delta)) && Units[j].Player == Units[i].Player)
 					Units[j].Position = Vector2Subtract(Units[j].Position, delta);
 				bumbed = true;
 			} else if(dist < 1.4 && Units[j].Player != Units[i].Player) {
@@ -377,10 +384,9 @@ void updateUnits(void) {
 			if(dist > 0.8) {
 				Units[i].Speed =
 					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
-				u32 x2 = round(Units[i].Position.x + Units[i].Speed.x*GetFrameTime());
-				u32 y2 = round(Units[i].Position.y + Units[i].Speed.y*GetFrameTime());
 				Units[i].Unmoveable++;
-				if(getSafe(x2, y2).Move || Units[i].Unmoveable > 30) {
+				if(collide(i, Vector2Scale(Units[i].Speed, GetFrameTime())) || 
+				  Units[i].Unmoveable > 30) {
 					Units[i].Speed = (Vector2){0};
 					if(tile->OccupiedTree) tile->OccupiedTree--;
 					Units[i].Chop.IgnoreTreeX = Units[i].Chop.TreeX;
