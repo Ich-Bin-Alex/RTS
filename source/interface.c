@@ -167,8 +167,7 @@ void updateInterface(void) {
 				forEachUnit(i) if(Units[i].Selected) {
 					tMoveOrder *move = newMoveOrder((tMoveOrder){Target: (Vector2){x/8, y/8}});
 					moveUnit(i, move);
-					Units[i].Action = ACTION_MOVE_AND_BUILD;
-					Units[i].Build.Target = (Vector2){x/8, y/8};
+					unitAction(i, ACTION_MOVE_AND_BUILD, (Vector2){x/8, y/8}, 0);
 					Units[i].Build.Building = newBuilding(
 						(tBuilding){Type: BuildLock, Player: 0, Finished: false}, x/8, y/8);
 					break;
@@ -243,7 +242,7 @@ void updateInterface(void) {
 		forEachUnit(i) if(Units[i].Selected) {
 			mid = Vector2Add(mid, Units[i].Position);
 			moveUnit(i, move);
-			Units[i].Action = ACTION_MOVE;
+			unitAction(i, ACTION_MOVE, MovePos, 0);
 			numSelected++;
 			Vector2 flow = getUnitFlow(i);
 			if(!flow.x && !flow.y) numUnmoveable++;
@@ -281,30 +280,18 @@ void updateInterface(void) {
 
 		CursorOffset = 0.5;
 		if(canChop) {
-			forEachUnit(i) if(Units[i].Selected) {
-				Units[i].Action = ACTION_MOVE_AND_CHOP;
-				Units[i].Chop.IgnoreTreeX = Units[i].Chop.IgnoreTreeY = 0;
-				Units[i].Chop.SearchTreeX = MovePos.x;
-				Units[i].Chop.SearchTreeY = MovePos.y;
-			}
+			forEachUnit(i) if(Units[i].Selected) unitAction(i, ACTION_MOVE_AND_CHOP, MovePos, 0);
 		} else if(canFarm && farmer) {
 			tTile tile = getSafe(MovePos.x, MovePos.y);
 			if(!Buildings[tile.Building].Farm.Occupier) {
-				Units[farmer].Action = ACTION_MOVE_AND_FARM;
-				Units[farmer].Farm.Target = MovePos;
-				Units[farmer].Farm.Building = tile.Building;
-				Buildings[tile.Building].Farm.Occupier = farmer;
+				unitAction(farmer, ACTION_MOVE_AND_FARM, MovePos, 0);
 				CursorOffset = 0.0;
 			} else moveUnit(farmer, NULL);
 		} else if(canBuild && builder) {
 			tTile tile = getSafe(MovePos.x, MovePos.y);
-			if(!Buildings[tile.Building].Build.Occupier) {
-				Units[builder].Action = ACTION_MOVE_AND_BUILD;
-				Units[builder].Build.Target = MovePos;
-				Units[builder].Build.Building = tile.Building;
-				Buildings[tile.Building].Build.Occupier = builder;
-				CursorOffset = 0.0;
-			} else moveUnit(builder, NULL);
+			if(!Buildings[tile.Building].Build.Occupier)
+				unitAction(builder, ACTION_MOVE_AND_BUILD, MovePos, 0);
+			else moveUnit(builder, NULL);
 		}
 
 		if(MovePos.x) MoveAnim = 4;
@@ -320,9 +307,8 @@ void beginDrawInterface(void) {
 }
 
 void endDrawInterface(void) {
-	i32 mx = GetMouseX(), my = GetMouseY();
+	i32 mx = GetMouseX(), my = GetMouseY(), width = GetScreenWidth(), height = GetScreenHeight();
 	i32 x = (mx + CameraX)/DrawSize, y = (my + CameraY)/DrawSize, numSelected = 0;
-	u32 width = GetScreenWidth(), height = GetScreenHeight();
 	UnitUnderMouse = 0;
 	UnitHandle firstSelected = 0;
 	bool canChop = Selected && isTree(x / 8, y / 8) && getSafe(x / 8 , y / 8).Seen;
@@ -470,11 +456,10 @@ void endDrawInterface(void) {
 		UIWidth = 3 + 32*DrawSize;
 	} else UIWidth = UIHeight = 0;
 
-	if(canChop && !inUI && !BuildLock) {
-		i32 anim = GetTime() * 5;
+	i32 anim = GetTime() * 5;
+	if(canChop && !inUI && !BuildLock)
 		drawTileFixed(mx - 3, my - 3, 21 + anim % 3, 30, WHITE, DrawSize);
-	} else if((canFarm || canBuild) && !inUI && !BuildLock) {
-		i32 anim = GetTime() * 5;
+	else if((canFarm || canBuild) && !inUI && !BuildLock)
 		drawTileFixed(mx - 3, my - 3, 24 + anim % 3, 30, WHITE, DrawSize);
-	} else drawTileFixed(mx - 3, my - 3, 20, 30, WHITE, DrawSize);
+	else drawTileFixed(mx - 3, my - 3, 20, 30, WHITE, DrawSize);
 }

@@ -46,7 +46,7 @@ typedef struct tUnitType {
 typedef enum eAction {
 	ACTION_MOVE,
 	ACTION_ATTACK,
-	ACTION_CHOP_TREE, ACTION_MOVE_AND_CHOP,
+	ACTION_CHOP, ACTION_MOVE_AND_CHOP,
 	ACTION_FARM, ACTION_MOVE_AND_FARM,
 	ACTION_BUILD, ACTION_MOVE_AND_BUILD,
 } eAction;
@@ -69,7 +69,7 @@ typedef struct tUnit {
 			UnitHandle Unit;
 		} Attack;
 		struct {
-			f32 Timer, Distance;
+			f32 Timer;
 			u32 TreeX, TreeY, IgnoreTreeX, IgnoreTreeY, SearchTreeX, SearchTreeY;
 		} Chop;
 		struct {
@@ -92,6 +92,7 @@ extern u32 NumUnits, AllocatedUnits, UnitPtr;
 
 UnitHandle newUnit(tUnit unit);
 void killUnit(UnitHandle unit);
+void unitAction(UnitHandle unit, eAction action, Vector2 target, UnitHandle enemy);
 Vector2 getUnitFlow(UnitHandle unit);
 void drawUnits(void);
 void updateUnits(void);
