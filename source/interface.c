@@ -58,8 +58,8 @@ static void drawTooltip(tTooltip tooltip) {
 	i32 x = GetMouseX(), y = GetMouseY(), width = 4*DrawSize, height = 6*FontSize+2*DrawSize;
 	if(tooltip.Text) width += measureText(tooltip.Text);
 	else if(tooltip.Unit) width += measureText(tooltip.Unit->Name);
-	else if(tooltip.Build) {
-		width += measureText(tooltip.Build->Name);
+	else if(tooltip.Build) width += measureText(tooltip.Build->Name);
+	if(tooltip.Builder) {
 		height += 12*FontSize;
 		y -= 12*FontSize;
 	}
@@ -219,7 +219,9 @@ void updateInterface(void) {
 			Buildings[getSafe(MovePos.x, MovePos.y).Building].Finished &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Player &&
 			!Buildings[getSafe(MovePos.x, MovePos.y).Building].Farm.Occupier;
-		UnitHandle farmer = 0;
+		BuildingHandle build = getBuilding(MovePos.x, MovePos.y);
+		bool canBuild = build != 0 && !Buildings[build].Finished && !Buildings[build].Build.Occupier;
+		UnitHandle farmer = 0, builder = 0;
 		if(UnitUnderMouse && Units[UnitUnderMouse].Player) {
 			MoveTarget = UnitUnderMouse;
 			move = newMoveOrder((tMoveOrder){Target: MovePos, Follow: MoveTarget});
@@ -236,6 +238,7 @@ void updateInterface(void) {
 		forEachUnit(i) if(Units[i].Selected) {
 			if(!Units[i].Type->CanChop) canChop = false;
 			if(!Units[i].Type->CanFarm) canFarm = false;
+			if(!Units[i].Type->CanBuild) canBuild = false;
 		}
 		forEachUnit(i) if(Units[i].Selected) {
 			mid = Vector2Add(mid, Units[i].Position);
@@ -246,6 +249,9 @@ void updateInterface(void) {
 			if(!flow.x && !flow.y) numUnmoveable++;
 			if(canFarm && !farmer) {
 				farmer = i;
+				break;
+			} else if(canBuild && !builder) {
+				builder = i;
 				break;
 			}
 		}
@@ -290,6 +296,15 @@ void updateInterface(void) {
 				Buildings[tile.Building].Farm.Occupier = farmer;
 				CursorOffset = 0.0;
 			} else moveUnit(farmer, NULL);
+		} else if(canBuild && builder) {
+			tTile tile = getSafe(MovePos.x, MovePos.y);
+			if(!Buildings[tile.Building].Build.Occupier) {
+				Units[builder].Action = ACTION_MOVE_AND_BUILD;
+				Units[builder].Build.Target = MovePos;
+				Units[builder].Build.Building = tile.Building;
+				Buildings[tile.Building].Build.Occupier = builder;
+				CursorOffset = 0.0;
+			} else moveUnit(builder, NULL);
 		}
 
 		if(MovePos.x) MoveAnim = 4;
@@ -314,7 +329,8 @@ void endDrawInterface(void) {
 	bool canFarm = Selected && isFarm(x / 8, y / 8) && getSafe(x / 8 , y / 8).Seen &&
 		Buildings[getSafe(x / 8, y / 8).Building].Finished &&
 		!Buildings[getSafe(x / 8, y / 8).Building].Farm.Occupier;
-	bool canBuild = true;
+	BuildingHandle build = getBuilding(x / 8, y / 8);
+	bool canBuild = build != 0 && !Buildings[build].Finished && !Buildings[build].Build.Occupier;
 	bool inUI = (my > height - 3 - 16*DrawSize && mx <= UIWidth) ||
 	            (mx <= 3 + 16*DrawSize && my >= height - UIHeight);
 
@@ -346,7 +362,6 @@ void endDrawInterface(void) {
 		drawBuildingHealthBar(toMapX(Buildings[SelectedBuild].FirstX*8), 
 			toMapY(Buildings[SelectedBuild].FirstY*8)-DrawSize*3, SelectedBuild, 
 			Buildings[SelectedBuild].Type->SizeX*8);
-	BuildingHandle build = getBuilding(x / 8, y / 8);
 	if(build && !UnitUnderMouse && !inUI)
 		drawBuildingHealthBar(toMapX(Buildings[build].FirstX*8), 
 			toMapY(Buildings[build].FirstY*8)-DrawSize*3, build, Buildings[build].Type->SizeX*8);
@@ -403,7 +418,7 @@ void endDrawInterface(void) {
 		drawTileFixed(3, height - 3 - 8*DrawSize, 16, 28, WHITE, DrawSize);
 		drawTileFixed(3 + 8*DrawSize, height - 3 - 8*DrawSize, 17, 28, WHITE, DrawSize);
 		if(numSelected) {
-			UIHeight = 3 + (16+canBuild)*DrawSize;
+			UIHeight = 3 + (16 + (Units[firstSelected].Type->Buildings[0] != 0))*DrawSize;
 			i32 anim =  floor(GetTime() * 4.0);
 			drawSpriteFixed(3 + 4*DrawSize, height-3-13*DrawSize, 0, anim % 4, 0);
 			if(numSelected > 1) {
@@ -458,7 +473,7 @@ void endDrawInterface(void) {
 	if(canChop && !inUI && !BuildLock) {
 		i32 anim = GetTime() * 5;
 		drawTileFixed(mx - 3, my - 3, 21 + anim % 3, 30, WHITE, DrawSize);
-	} else if(canFarm && !inUI && !BuildLock) {
+	} else if((canFarm || canBuild) && !inUI && !BuildLock) {
 		i32 anim = GetTime() * 5;
 		drawTileFixed(mx - 3, my - 3, 24 + anim % 3, 30, WHITE, DrawSize);
 	} else drawTileFixed(mx - 3, my - 3, 20, 30, WHITE, DrawSize);

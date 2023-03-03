@@ -418,7 +418,7 @@ void updateUnits(void) {
 					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
 			} else {
 				Units[i].Direction = 0;
-				if(Units[i].Farm.Timer < GetTime() - 5.0) {
+				if(Units[i].Farm.Timer < GetTime() - 2.5) {
 					Player[Units[i].Player].Food++;
 					Units[i].Farm.Timer = GetTime();
 				}
