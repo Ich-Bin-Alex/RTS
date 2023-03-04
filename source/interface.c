@@ -155,6 +155,49 @@ void updateInterface(void) {
 	if(CameraY > MAP_SIZE*8*DrawSize-height) CameraY = MAP_SIZE*8*DrawSize-height;
 	if(CameraY < 0) CameraY = 0;
 
+	if(IsKeyDown(KEY_LEFT_SHIFT)) { // Cheats
+		static i32 Magellan = 0, Kroisos = 0, Adam = 0;
+		if(IsKeyPressed(KEY_M) && Magellan == 0) Magellan++;
+		else if(IsKeyPressed(KEY_A) && Magellan == 1) Magellan++;
+		else if(IsKeyPressed(KEY_G) && Magellan == 2) Magellan++;
+		else if(IsKeyPressed(KEY_E) && Magellan == 3) Magellan++;
+		else if(IsKeyPressed(KEY_L) && Magellan == 4) Magellan++;
+		else if(IsKeyPressed(KEY_L) && Magellan == 5) Magellan++;
+		else if(IsKeyPressed(KEY_A) && Magellan == 6) Magellan++;
+		else if(IsKeyPressed(KEY_N) && Magellan == 7) Magellan++;
+		else if(GetKeyPressed()) Magellan = 0;
+
+		if(IsKeyPressed(KEY_K) && Kroisos == 0) Kroisos++;
+		else if(IsKeyPressed(KEY_R) && Kroisos == 1) Kroisos++;
+		else if(IsKeyPressed(KEY_O) && Kroisos == 2) Kroisos++;
+		else if(IsKeyPressed(KEY_I) && Kroisos == 3) Kroisos++;
+		else if(IsKeyPressed(KEY_S) && Kroisos == 4) Kroisos++;
+		else if(IsKeyPressed(KEY_O) && Kroisos == 5) Kroisos++;
+		else if(IsKeyPressed(KEY_S) && Kroisos == 6) Kroisos++;
+		else if(GetKeyPressed()) Kroisos = 0;
+
+		if(IsKeyPressed(KEY_A) && Adam == 0) Adam++;
+		else if(IsKeyPressed(KEY_D) && Adam == 1) Adam++;
+		else if(IsKeyPressed(KEY_A) && Adam == 2) Adam++;
+		else if(IsKeyPressed(KEY_M) && Adam == 3) Adam++;
+		else if(GetKeyPressed()) Adam = 0;
+
+		if(Magellan == 8) {
+			for(u32 x2 = 0; x2 < MAP_SIZE; x2++) for(u32 y2 = 0; y2 < MAP_SIZE; y2++) 
+				Map[x2][y2].Seen = true;
+			Magellan = 0;
+		} else if(Kroisos == 7) {
+			Player[0].Food += 200;
+			Player[0].Wood += 200;
+			Kroisos = 0;
+		} else if(Adam == 4) {
+			Vector2 pos = {16.0 + GetRandomValue(-100, 100)/100.0,
+			               16.0 + GetRandomValue(-100, 100)/100.0};
+			newUnit((tUnit){Type: &Peasent, Position: pos});
+			Adam = 0;
+		}
+	}
+
 	if(BuildLock) {
 		if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) BuildLock = NULL;
 		else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {

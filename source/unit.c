@@ -263,13 +263,11 @@ void drawUnits(void) {
 			break;
 		case ACTION_FARM:
 			if(Units[i].Speed.x || Units[i].Speed.y) goto lMove;
-			Units[i].Direction = 0;
 			anim = (Units[i].Animation + floor(GetTime() * 6.0));
 			offset = 8;
 			break;
 		case ACTION_BUILD:
 			if(Units[i].Speed.x || Units[i].Speed.y) goto lMove;
-			Units[i].Direction = 0;
 			anim = (Units[i].Animation + floor(GetTime() * 8.0));
 			offset = 9;
 			break;
@@ -503,7 +501,7 @@ void updateUnits(void) {
 			if(Units[i].Action != ACTION_MOVE_AND_CHOP && Units[i].Action != ACTION_CHOP)
 				Units[i].Unmoveable = 0;
 			if(!nextEnemy && Units[i].IdleTimer < GetTime() - 8.0) {
-				Units[i].Direction = GetRandomValue(0,3);
+				if(Units[i].Action == ACTION_MOVE) Units[i].Direction = GetRandomValue(0,3);
 				Units[i].IdleTimer = GetTime() + GetRandomValue(-4000, 4000) / 1000.0;
 				continue;
 			} else if(nextEnemy) {

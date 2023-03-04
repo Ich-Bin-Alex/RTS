@@ -315,7 +315,6 @@ void createMap(u32 seed) {
 			if(Map[x-1][y-1].Move == 0xff && !Map[x-1][y].Move && !Map[x][y-1].Move)
 				setSafe(x-1, y, (tTile){Top: choice(T_TREE, T_TREE2), Move: 0xff});
 		}
-		//Map[x][y].Seen = true;
 	}
 
 	for(i32 i = 0; i < MAP_SIZE; i++) // Prevent walking beyond the map borders
