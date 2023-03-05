@@ -22,6 +22,7 @@ typedef struct tMoveOrder {
 	bool OnlySeen;
 	bool AttackOnSight;
 	u32 LastUpdate;
+	u8 Move[MAP_SIZE][MAP_SIZE];
 	tFlow Flow[MAP_SIZE][MAP_SIZE];
 } tMoveOrder;
 

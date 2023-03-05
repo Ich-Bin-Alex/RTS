@@ -36,6 +36,7 @@ static void updateFlow(tMoveOrder *order) {
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
 		if(!order->OnlySeen) Grid[x][y] = Map[x][y].Move ? 0xffff : 0;
 		else Grid[x][y] = Map[x][y].Move || !Map[x][y].Seen ? 0xffff : 0;
+		order->Move[x][y] = Map[x][y].Move;
 	}
 	push(order->Target.x, order->Target.y, Grid[(u16)order->Target.x][(u16)order->Target.y] = 1);
 
@@ -461,12 +462,12 @@ void updateUnits(void) {
 				Units[i].Speed =
 					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
 			} else {
+				tBuilding *build = &Buildings[Units[i].Build.Building];
 				Units[i].Direction = 0;
 				if(Units[i].Build.Timer < GetTime() - 0.1) {
-					Buildings[Units[i].Build.Building].Health++;
+					build->Health++;
 					Units[i].Build.Timer = GetTime();
 				}
-				tBuilding *build = &Buildings[Units[i].Build.Building];
 				if(build->Health >= build->Type->MaxHealth) {
 					build->Finished = true;
 					build->Health = build->Type->MaxHealth;
@@ -483,7 +484,11 @@ void updateUnits(void) {
 		}
 		
 		Units[i].Speed = Vector2Scale(Units[i].Speed, GetFrameTime());
-		Units[i].Position = Vector2Add(Units[i].Position, Units[i].Speed);
+		u32 x2 = round(Units[i].Position.x + Units[i].Speed.x);
+		u32 y2 = round(Units[i].Position.y + Units[i].Speed.y);
+		if(Units[i].MoveOrder && getSafe(x2, y2).Move != Units[i].MoveOrder->Move[x2][y2]) {
+			updateMoveOrder(Units[i].MoveOrder); // Update pathfinding when Map changed
+		} else Units[i].Position = Vector2Add(Units[i].Position, Units[i].Speed);
 		Vector2 movement = Vector2Subtract(Units[i].Position, oldPos);
 
 		if(Units[i].Action != ACTION_CHOP) {
