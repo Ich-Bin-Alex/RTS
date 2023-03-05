@@ -30,7 +30,7 @@ extern u32 NumMoveOrders;
 
 tMoveOrder *newMoveOrder(tMoveOrder order);
 void freeMoveOrder(tMoveOrder *order);
-void updateMoveOrder(tMoveOrder *order);
+void updateMoveOrder(tMoveOrder *order, f32 time);
 void drawMoveOrder(tMoveOrder *order);
 
 typedef struct tUnitType {

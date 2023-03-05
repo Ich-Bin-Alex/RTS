@@ -117,8 +117,8 @@ void freeMoveOrder(tMoveOrder *order) {
 	NumMoveOrders--;
 }
 
-void updateMoveOrder(tMoveOrder *order) {
-	if(!order->Follow || FrameCount - order->LastUpdate < 20) return;
+void updateMoveOrder(tMoveOrder *order, f32 time) {
+	if(FrameCount - order->LastUpdate < time) return;
 	order->Target = Units[order->Follow].Position;
 	updateFlow(order);
 }
@@ -486,9 +486,9 @@ void updateUnits(void) {
 		Units[i].Speed = Vector2Scale(Units[i].Speed, GetFrameTime());
 		u32 x2 = round(Units[i].Position.x + Units[i].Speed.x);
 		u32 y2 = round(Units[i].Position.y + Units[i].Speed.y);
-		if(Units[i].MoveOrder && getSafe(x2, y2).Move != Units[i].MoveOrder->Move[x2][y2]) {
-			updateMoveOrder(Units[i].MoveOrder); // Update pathfinding when Map changed
-		} else Units[i].Position = Vector2Add(Units[i].Position, Units[i].Speed);
+		if(Units[i].MoveOrder && getSafe(x2, y2).Move != Units[i].MoveOrder->Move[x2][y2])
+			updateMoveOrder(Units[i].MoveOrder, 0); // Update pathfinding when Map changed
+		else Units[i].Position = Vector2Add(Units[i].Position, Units[i].Speed);
 		Vector2 movement = Vector2Subtract(Units[i].Position, oldPos);
 
 		if(Units[i].Action != ACTION_CHOP) {
@@ -522,7 +522,7 @@ void updateUnits(void) {
 		if(Units[i].Player && !Units[i].MoveOrder->Follow && nextEnemy) // Enemy units autoattack
 			moveUnit(i, newMoveOrder((tMoveOrder){Follow: nextEnemy}));
 
-		updateMoveOrder(Units[i].MoveOrder);
+		if(Units[i].MoveOrder->Follow) updateMoveOrder(Units[i].MoveOrder, 20);
 		Units[i].Speed = Vector2Scale(getUnitFlow(i), Units[i].Type->Speed - bumbed);
 		Units[i].Unmoveable += fabsf(movement.x) < 0.02 && fabsf(movement.y) < 0.02;
 		f32 dist = 0.5;
