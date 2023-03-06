@@ -18,7 +18,7 @@ tUnitType Peasent = {
 	Speed: 4.0,
 	ViewDistance: 7,
 	CanChop: true, CanFarm: true, CanBuild: true,
-	Buildings: {&Farm, NULL}
+	Buildings: {&Farm, &House, NULL}
 };
 
 static void updateFlow(tMoveOrder *order) {
@@ -117,7 +117,7 @@ void freeMoveOrder(tMoveOrder *order) {
 	NumMoveOrders--;
 }
 
-void updateMoveOrder(tMoveOrder *order, f32 time) {
+void updateMoveOrder(tMoveOrder *order, i32 time) {
 	if(FrameCount - order->LastUpdate < time) return;
 	order->Target = Units[order->Follow].Position;
 	updateFlow(order);
@@ -457,12 +457,13 @@ void updateUnits(void) {
 				Units[i].Speed = (Vector2){0};
 			}
 		} else if(Units[i].Action == ACTION_BUILD) {
-			if(Vector2Distance(Units[i].Position, Units[i].Build.Target) > 0.1) {
+			tBuilding *build = &Buildings[Units[i].Build.Building];
+			f32 dist = build->Type->BlockMovement ? 1.0 : 0.1;
+			if(Vector2Distance(Units[i].Position, Units[i].Build.Target) > dist) {
 				Vector2 axis = Vector2Subtract(Units[i].Position, Units[i].Build.Target);
 				Units[i].Speed =
 					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
 			} else {
-				tBuilding *build = &Buildings[Units[i].Build.Building];
 				Units[i].Direction = 0;
 				if(Units[i].Build.Timer < GetTime() - 0.1) {
 					build->Health++;
@@ -471,10 +472,13 @@ void updateUnits(void) {
 				if(build->Health >= build->Type->MaxHealth) {
 					build->Finished = true;
 					build->Health = build->Type->MaxHealth;
+					Player[build->Player].PopulationLimit += build->Type->Population;
 					u32 x2 = build->FirstX, y2 = build->FirstY;
 					for(i32 xi = 0; xi < build->Type->SizeX; xi++) 
-					for(i32 yi = 0; yi < build->Type->SizeY; yi++)
-						refSafe(x2 + xi, y2 + yi)->Bottom = build->Type->Tiles[xi][yi];
+					for(i32 yi = 0; yi < build->Type->SizeY; yi++) {
+						refSafe(x2 + xi, y2 + yi)->Bottom = build->Type->BottomTiles[xi][yi];
+						refSafe(x2 + xi, y2 + yi)->Top = build->Type->TopTiles[xi][yi];
+					}
 					if(build->Type == &Farm) unitAction(i, ACTION_FARM, (Vector2){
 						x2 + build->Type->SizeX/2 - 0.5, y2 + build->Type->SizeY/2 - 0.75}, 0);
 					else unitAction(i, ACTION_MOVE, (Vector2){0}, 0);
@@ -487,7 +491,7 @@ void updateUnits(void) {
 		u32 x2 = round(Units[i].Position.x + Units[i].Speed.x);
 		u32 y2 = round(Units[i].Position.y + Units[i].Speed.y);
 		if(Units[i].MoveOrder && getSafe(x2, y2).Move != Units[i].MoveOrder->Move[x2][y2])
-			updateMoveOrder(Units[i].MoveOrder, 0); // Update pathfinding when Map changed
+			updateFlow(Units[i].MoveOrder); // Update pathfinding when Map changed
 		else Units[i].Position = Vector2Add(Units[i].Position, Units[i].Speed);
 		Vector2 movement = Vector2Subtract(Units[i].Position, oldPos);
 
@@ -533,6 +537,7 @@ void updateUnits(void) {
 			if(Units[i].Unmoveable > 20) dist += 4.0;
 			if(action == ACTION_MOVE_AND_CHOP) dist = 1.0;
 			else if(action == ACTION_MOVE_AND_FARM) dist = 0.5;
+			else if(action == ACTION_MOVE_AND_BUILD) dist = 2.0;
 		}
 
 		if(Vector2Distance(Units[i].Position, Units[i].MoveOrder->Target) < dist) {

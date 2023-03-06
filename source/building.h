@@ -10,14 +10,15 @@ typedef struct tBuildingType {
 	char Name[32];
 	u32 MaxHealth;
 	u32 FoodCost, WoodCost;
+	i32 Population;
 	i32 ViewDistance;
 	bool BlockMovement;
 	i32 SizeX, SizeY;
 	u8 Icon;
-	u8 Tiles[3][3], RubbleTiles[3][3], ConstructTiles[3][3];
+	u8 BottomTiles[3][3], TopTiles[3][3], RubbleTiles[3][3], ConstructTiles[3][3];
 } tBuildingType;
 
-extern tBuildingType Farm;
+extern tBuildingType Farm, House;
 
 typedef struct tBuilding {
 	bool Exists, Finished;

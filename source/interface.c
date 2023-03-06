@@ -8,6 +8,16 @@
 
 i32 CharSizes[0x80] = {[' '] = 4};
 
+typedef struct tTooltip {
+	char *Text;
+	bool Builder;
+	tUnitType *Unit;
+	tBuildingType *Build;
+	KeyboardKey Hotkey;
+} tTooltip;
+
+static tTooltip Tooltip;
+
 static f32 MoveAnim, CursorOffset;
 static bool Selected = false, RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
@@ -45,14 +55,6 @@ static i32 measureText(char *text) {
 	for(i32 i = 0; text[i]; i++) length += CharSizes[(u32)text[i]] * FontSize;
 	return length;
 }
-
-typedef struct tTooltip {
-	char *Text;
-	bool Builder;
-	tUnitType *Unit;
-	tBuildingType *Build;
-	KeyboardKey Hotkey;
-} tTooltip;
 
 static void drawTooltip(tTooltip tooltip) {
 	i32 x = GetMouseX(), y = GetMouseY(), width = 4*DrawSize, height = 6*FontSize+2*DrawSize;
@@ -103,7 +105,7 @@ static bool drawActionButton(i32 x, i32 y, u32 tx, u32 ty, tTooltip tooltip) {
 			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, WHITE, DrawSize);
 			drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, GetColor(0x00000080), DrawSize);
 		} else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) return true;
-		else drawTooltip(tooltip);
+		else Tooltip = tooltip;
 	}
 	return false;
 }
@@ -115,7 +117,7 @@ static bool drawDisabledButton(i32 x, i32 y, u32 tx, u32 ty, tTooltip tooltip) {
 	drawTileFixed(x, y + 8*DrawSize, 18, 28, GRAY, DrawSize);
 	drawTileFixed(x + 8*DrawSize, y + 8*DrawSize, 19, 28, GRAY, DrawSize);
 	drawTileFixed(x + 4*DrawSize, y + 4*DrawSize, tx, ty, GRAY, DrawSize);
-	if(mx > x && mx < x + 16*DrawSize && my > y && my < y + 16*DrawSize) drawTooltip(tooltip);
+	if(mx > x && mx < x + 16*DrawSize && my > y && my < y + 16*DrawSize) Tooltip = tooltip;
 	return false;
 }
 
@@ -138,6 +140,7 @@ static void drawBuildingHealthBar(i32 x, i32 y, BuildingHandle build, i32 scale)
 }
 
 void updateInterface(void) {
+	Tooltip = (tTooltip){NULL};
 	i32 width = GetScreenWidth(), height = GetScreenHeight();
 	i32 mx = GetMouseX(), my = GetMouseY();
 	i32 x = (mx + CameraX)/DrawSize, y = (my + CameraY)/DrawSize;
@@ -359,7 +362,7 @@ void endDrawInterface(void) {
 		Buildings[getSafe(x / 8, y / 8).Building].Finished &&
 		!Buildings[getSafe(x / 8, y / 8).Building].Farm.Occupier;
 	BuildingHandle build = getBuilding(x / 8, y / 8);
-	bool canBuild = build != 0 && !Buildings[build].Finished && !Buildings[build].Build.Occupier;
+	bool canBuild = Selected && build && !Buildings[build].Finished && !Buildings[build].Build.Occupier;
 	bool inUI = (my > height - 3 - 16*DrawSize && mx <= UIWidth) ||
 	            (mx <= 3 + 16*DrawSize && my >= height - UIHeight);
 
@@ -428,9 +431,9 @@ void endDrawInterface(void) {
 	drawText(text, width - measureText(text) - offset, 10 + 16*DrawSize, TextColor);
 	drawTileFixed(width - 3 - 8*DrawSize, 7 + 16*DrawSize, WoodIconTX, IconTY, WHITE, DrawSize);
 	if(mx > width - 3 - 8*DrawSize) {
-		if(my < 3+8*DrawSize) drawTooltip((tTooltip){Text: "Population"});
-		else if(my < 5+16*DrawSize) drawTooltip((tTooltip){Text: "Food"});
-		else if(my < 7+24*DrawSize) drawTooltip((tTooltip){Text: "Wood"});
+		if(my < 3+8*DrawSize) Tooltip = (tTooltip){Text: "Population"};
+		else if(my < 5+16*DrawSize) Tooltip = (tTooltip){Text: "Food"};
+		else if(my < 7+24*DrawSize) Tooltip = (tTooltip){Text: "Wood"};
 	}
 
 	if(ShowDebug) {
@@ -477,7 +480,7 @@ void endDrawInterface(void) {
 			}
 
 			if(mx < 3 + 16*DrawSize && my >= height - 3 - 16*DrawSize) 
-				drawTooltip((tTooltip){Unit: Units[firstSelected].Type, Builder: false});
+				Tooltip = (tTooltip){Unit: Units[firstSelected].Type, Builder: false};
 		} else if(SelectedBuild) {
 			UIHeight = 3 + 16*DrawSize;
 			tBuildingType *type = Buildings[SelectedBuild].Type;
@@ -494,10 +497,12 @@ void endDrawInterface(void) {
 			}
 
 			if(mx < 3 + 16*DrawSize && my >= height - 3 - 16*DrawSize) 
-				drawTooltip((tTooltip){Build: Buildings[SelectedBuild].Type, Builder: false});
+				Tooltip = (tTooltip){Build: Buildings[SelectedBuild].Type, Builder: false};
 		}
 		UIWidth = 3 + 32*DrawSize;
 	} else UIWidth = UIHeight = 0;
+
+	if(Tooltip.Text || Tooltip.Unit || Tooltip.Build) drawTooltip(Tooltip);
 
 	i32 anim = GetTime() * 5;
 	if(canChop && !inUI && !BuildLock)
