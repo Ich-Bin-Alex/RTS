@@ -340,7 +340,9 @@ void beginDrawMap(void) {
 			ty += (anim  % 4) * 3; // Water animation
 			Map[x][y].Blood = 0; // Disable blood in water
 		}
-		drawTile(x, y, tx, ty, 1.0);
+		if(tx <= 8 && ty >= 7 && ty <= 12)
+			drawBuilding(x, y, tx, ty, Buildings[Map[x][y].Building].Player);
+		else drawTile(x, y, tx, ty, 1.0);
 		if(Map[x][y].Blood) drawTile(x, y, hash(x, y) % 12, 14, Map[x][y].Blood);
 	}
 	for(i32 x = 0; x < MAP_SIZE; x++) for(i32 y = 0; y < MAP_SIZE; y++) {
@@ -354,7 +356,12 @@ void beginDrawMap(void) {
 void endDrawMap(void) {
 	for(i32 x = StartDrawX; x < EndDrawX; x++) for(i32 y = StartDrawY; y < EndDrawY; y++) {
 		if(Map[x][y].Seen) {
-			if(Map[x][y].Top) drawTile(x, y, Map[x][y].Top & 0x0f, Map[x][y].Top >> 4, 1.0);
+			if(Map[x][y].Top) {
+				u32 tx = Map[x][y].Top & 0x0f, ty = Map[x][y].Top >> 4;
+				if(tx <= 8 && ty >= 7 && ty <= 12)
+					drawBuilding(x, y, tx, ty, Buildings[Map[x][y].Building].Player);
+				else drawTile(x, y, tx, ty, 1.0);
+			}
 			if(Map[x][y].Animation) {
 				u32 tx = (Map[x][y].Animation & 0x0f) + Map[x][y].Frame, ty = Map[x][y].Animation >> 4;
 				drawTile(x, y, tx, ty, 1.0);

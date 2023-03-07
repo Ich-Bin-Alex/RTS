@@ -14,7 +14,6 @@ i32 main() {
 	SetTargetFPS(60);
 
 	initGame();
-
 	newBuilding((tBuilding){Type: &Farm, Finished: true}, 16, 16);
 
 	for(i32 i = 0; i < 10; i++) {

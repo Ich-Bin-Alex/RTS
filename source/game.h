@@ -5,7 +5,7 @@
 #include "source/tools/raylib.h"
 
 typedef struct tPlayer {
-	Texture Sprites;
+	Texture Sprites, Buildings;
 	Color Color, Color2;
 	i32 Population, PopulationLimit;
 	i32 Food, Wood, FoodIncome, WoodIncome;
@@ -22,6 +22,7 @@ extern Color TextColor, GoodColor, BadColor, HealthColor1, HealthColor2, HealthC
 void initGame(void);
 void updateGame(void);
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha);
+void drawBuilding(i32 x, i32 y, u32 tx, u32 ty, PlayerHandle player);
 void drawTileFixed(i32 x, i32 y, u32 tx, u32 ty, Color color, i32 scale);
 void drawTileFree(Vector2 pos, u32 tx, u32 ty);
 void drawSprite(Vector2 pos, PlayerHandle player, u32 tx, u32 ty);

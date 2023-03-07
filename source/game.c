@@ -25,12 +25,17 @@ void initGame(void) {
 
 	for(i32 i = 0; i < 8; i++) {
 		Image sprites = ImageFromImage(img, (Rectangle){128,0,128,128});
+		Image buildings = ImageFromImage(img, (Rectangle){0,0,128,128});
 		Player[i].Color = GetImageColor(img, 254, 248 + i);
 		Player[i].Color2 = GetImageColor(img, 255, 248 + i);
 		ImageColorReplace(&sprites, GetColor(0xb8b8b8ff), Player[i].Color);
 		ImageColorReplace(&sprites, GetColor(0x858585ff), Player[i].Color2);
+		ImageColorReplace(&buildings, GetColor(0xb8b8b8ff), Player[i].Color);
+		ImageColorReplace(&buildings, GetColor(0x858585ff), Player[i].Color2);
 		Player[i].Sprites = LoadTextureFromImage(sprites);
+		Player[i].Buildings = LoadTextureFromImage(buildings);
 		UnloadImage(sprites);
+		UnloadImage(buildings);
 	}
 	for(u32 i = '\"'; i <= '~'; i++) {
 		i32 count = 0; // Search for the first two (count == 2) empty pixel columns in the tile
@@ -62,6 +67,12 @@ void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha) {
 	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){x*8*DrawSize-CameraX, y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
 		(Vector2){0}, 0, (Color){255,255,255,255.0*alpha});
+}
+
+void drawBuilding(i32 x, i32 y, u32 tx, u32 ty, PlayerHandle player) {
+	DrawTexturePro(Player[player].Buildings, (Rectangle){tx*8, ty*8, 8, 8},
+		(Rectangle){x*8*DrawSize-CameraX, y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
+		(Vector2){0}, 0, WHITE);
 }
 
 void drawTileFixed(i32 x, i32 y, u32 tx, u32 ty, Color color, i32 scale) {

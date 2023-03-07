@@ -247,9 +247,9 @@ void updateInterface(void) {
 				   Units[i].Position.y*8+4 > y1 && Units[i].Position.y*8 < y2 && !Units[i].Player)
 					Units[i].Selected = Selected = true;
 			}
-			RectSelect = false;
 			if(Selected) SelectedBuild = 0;
 		}
+		RectSelect = false;
 	} else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !inUI) {
 		if(!RectSelect) Select1 = GetMousePosition();
 		Select2 = GetMousePosition();
@@ -367,7 +367,7 @@ void endDrawInterface(void) {
 	bool inUI = (my > height - 3 - 16*DrawSize && mx <= UIWidth) ||
 	            (mx <= 3 + 16*DrawSize && my >= height - UIHeight);
 
-	if(BuildLock) {
+	if(BuildLock) { // Check if location is valid for buildings
 		for(i32 xi = 0; xi < BuildLock->SizeX; xi++) for(i32 yi = 0; yi < BuildLock->SizeY; yi++) {
 			tTile tile = getSafe(x/8 + xi, y/8 + yi);
 			BuildOk[xi][yi] = !tile.Move && tile.Seen && !getBuilding(x/8 + xi, y/8 + yi);
