@@ -213,6 +213,9 @@ void unitAction(UnitHandle unit, eAction action, Vector2 target, UnitHandle enem
 		Units[unit].Build.Building = tile.Building;
 		Buildings[tile.Building].Build.Occupier = unit;
 		break;
+	case ACTION_MOVE_FREE:
+		Units[unit].Build.Target = target;
+		break;
 	default: break;
 	}
 }
@@ -241,7 +244,7 @@ void drawUnits(void) {
 		if(Units[i].Player && !getSafe(Units[i].Position.x, Units[i].Position.y).Seen) continue;
 		i32 anim = 0, offset = 0;
 		switch(Units[i].Action) {
-		case ACTION_MOVE: case ACTION_MOVE_AND_CHOP:
+		case ACTION_MOVE: case ACTION_MOVE_AND_CHOP: case ACTION_MOVE_FREE:
 		case ACTION_MOVE_AND_FARM: case ACTION_MOVE_AND_BUILD: lMove:
 			if(Units[i].Speed.x || Units[i].Speed.y)
 				anim = (Units[i].Animation + floor(GetTime()*Vector2Length(Units[i].Speed)*2.0));
@@ -473,7 +476,7 @@ void updateUnits(void) {
 					build->Finished = true;
 					build->Health = build->Type->MaxHealth;
 					Player[build->Player].PopulationLimit += build->Type->Population;
-					u32 x2 = build->FirstX, y2 = build->FirstY;
+					i32 x2 = build->FirstX, y2 = build->FirstY;
 					for(i32 xi = 0; xi < build->Type->SizeX; xi++) 
 					for(i32 yi = 0; yi < build->Type->SizeY; yi++) {
 						refSafe(x2 + xi, y2 + yi)->Bottom = build->Type->BottomTiles[xi][yi];
@@ -481,10 +484,25 @@ void updateUnits(void) {
 					}
 					if(build->Type == &Farm) unitAction(i, ACTION_FARM, (Vector2){
 						x2 + build->Type->SizeX/2 - 0.5, y2 + build->Type->SizeY/2 - 0.75}, 0);
-					else unitAction(i, ACTION_MOVE, (Vector2){0}, 0);
+					else {
+						for(i32 j = 0; j < 8; j++) {
+							if(!getSafe(x2 + NX[j], y2 + NY[j]).Move) {
+								x2 = x2 + NX[j];
+								y2 = y2 + NY[j];
+								break;
+							}
+						}
+						unitAction(i, ACTION_MOVE_FREE, (Vector2){x2, y2}, 0);
+					}
 				}
 				Units[i].Speed = (Vector2){0};
 			}
+		} else if(Units[i].Action == ACTION_MOVE_FREE) {
+			if(Vector2Distance(Units[i].Position, Units[i].Build.Target) > 0.1) {
+				Vector2 axis = Vector2Subtract(Units[i].Position, Units[i].Build.Target);
+				Units[i].Speed =
+					Vector2Scale(Vector2Normalize(Vector2Negate(axis)), Units[i].Type->Speed);
+			} else unitAction(i, ACTION_MOVE, (Vector2){0}, 0);
 		}
 		
 		Units[i].Speed = Vector2Scale(Units[i].Speed, GetFrameTime());

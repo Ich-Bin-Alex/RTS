@@ -188,16 +188,16 @@ void updateInterface(void) {
 		if(Magellan == 8) {
 			for(u32 x2 = 0; x2 < MAP_SIZE; x2++) for(u32 y2 = 0; y2 < MAP_SIZE; y2++) 
 				Map[x2][y2].Seen = true;
-			Magellan = 0;
+			Magellan = Kroisos = Adam = 0;
 		} else if(Kroisos == 7) {
 			Player[0].Food += 200;
 			Player[0].Wood += 200;
-			Kroisos = 0;
+			Magellan = Kroisos = Adam = 0;
 		} else if(Adam == 4) {
 			Vector2 pos = {16.0 + GetRandomValue(-100, 100)/100.0,
 			               16.0 + GetRandomValue(-100, 100)/100.0};
 			newUnit((tUnit){Type: &Peasent, Position: pos});
-			Adam = 0;
+			Magellan = Kroisos = Adam = 0;
 		}
 	}
 
@@ -309,6 +309,7 @@ void updateInterface(void) {
 
 		// Search for valid position, in case the desired position is unreachable
 		while(numSelected == numUnmoveable || getSafe(MovePos.x, MovePos.y).Move == 0xff) {
+			if(canBuild && builder) break;
 			canFarm = false;
 			numUnmoveable = 0;
 			MovePos = Vector2Add(MovePos, dir);
@@ -370,6 +371,11 @@ void endDrawInterface(void) {
 		for(i32 xi = 0; xi < BuildLock->SizeX; xi++) for(i32 yi = 0; yi < BuildLock->SizeY; yi++) {
 			tTile tile = getSafe(x/8 + xi, y/8 + yi);
 			BuildOk[xi][yi] = !tile.Move && tile.Seen && !getBuilding(x/8 + xi, y/8 + yi);
+			forEachUnit(i) {
+				if(!BuildOk[xi][yi]) break;
+				if(round(Units[i].Position.x) == x/8 + xi && round(Units[i].Position.y) == y/8 + yi) 
+					BuildOk[xi][yi] = false;
+			}
 			drawTile(x/8 + xi, y/8 + yi, 22, 27 + !BuildOk[xi][yi], 10);
 		}
 	}
