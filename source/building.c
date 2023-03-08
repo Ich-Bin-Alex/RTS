@@ -78,6 +78,7 @@ void destroyBuilding(BuildingHandle build) {
 	i32 x = Buildings[build].FirstX, y = Buildings[build].FirstY;
 	tBuildingType *type = Buildings[build].Type;
 	Buildings[build].Exists = false;
+	Player[Buildings[build].Player].PopulationLimit -= type->Population;
 	if(Buildings[build].Finished) {
 		if(Buildings[build].Type == &Farm) Units[Buildings[build].Farm.Occupier].Action = ACTION_MOVE;
 	} else Units[Buildings[build].Build.Occupier].Action = ACTION_MOVE;
