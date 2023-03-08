@@ -33,6 +33,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/..)
 add_executable(rts 
 	rts.c 
 	source/tools/helper.c
+	source/tools/vector.c
 	source/game.c
 	source/map.c
 	source/unit.c

@@ -1,8 +1,9 @@
 #ifndef H_GAME
 #define H_GAME
 
-#include "source/tools/helper.h"
 #include "source/tools/raylib.h"
+#include "source/tools/helper.h"
+#include "source/tools/vector.h"
 
 typedef struct tPlayer {
 	Texture Sprites, Buildings;
@@ -24,8 +25,8 @@ void updateGame(void);
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha);
 void drawBuilding(i32 x, i32 y, u32 tx, u32 ty, PlayerHandle player);
 void drawTileFixed(i32 x, i32 y, u32 tx, u32 ty, Color color, i32 scale);
-void drawTileFree(Vector2 pos, u32 tx, u32 ty);
-void drawSprite(Vector2 pos, PlayerHandle player, u32 tx, u32 ty);
+void drawTileFree(vec2 pos, u32 tx, u32 ty);
+void drawSprite(vec2 pos, PlayerHandle player, u32 tx, u32 ty);
 void drawSpriteFixed(i32 x, i32 y, PlayerHandle player, u32 tx, u32 ty);
 i32 choice(i32 x, i32 y);
 

@@ -1,7 +1,7 @@
 #include "string.h"
 #include "source/tools/raylib.h"
-#include "source/tools/raymath.h"
 #include "source/tools/helper.h"
+#include "source/tools/vector.h"
 #include "source/game.h"
 #include "source/map.h"
 
@@ -146,15 +146,15 @@ void createMap(u32 seed) {
 	}
 
 	void placePath(u32 x1, u32 y1, u32 x2, u32 y2, i32 radius) {
-		Vector2 dir = Vector2Normalize((Vector2){x2-x1, y2-y1}), pos = {x1, y1};
+		vec2 dir = vnormalize(vec2(x2-x1, y2-y1)), pos = {x1, y1};
 		for(i32 i = 0; i < 512; i++) {
-			if(i % 2 == 0) dir = Vector2Rotate(dir, GetRandomValue(-1000, 1000) / 1000.0 * PI/4);
-			else dir = Vector2Normalize((Vector2){x2-pos.x, y2-pos.y});
+			if(i % 2 == 0) dir = vrotate(dir, GetRandomValue(-1000, 1000) / 1000.0 * PI/4);
+			else dir = vnormalize(vsub(vec2(x2, y2), pos));
 
 			for(i32 j = 0; j <= 8.0; j++) {
 				placeCircle(pos.x, pos.y, radius, (tTile){Bottom: T_FLOOR});
-				pos = Vector2Add(pos, dir);
-				if(Vector2Distance(pos, (Vector2){x2,y2}) < 1.0) return;
+				pos = vadd(pos, dir);
+				if(vdistance(pos, vec2(x2, y2)) < 1.0) return;
 			}
 		}
 	}

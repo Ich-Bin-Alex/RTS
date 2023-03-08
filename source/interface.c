@@ -1,7 +1,7 @@
 #include "string.h"
 #include "source/tools/raylib.h"
-#include "source/tools/raymath.h"
 #include "source/tools/helper.h"
+#include "source/tools/vector.h"
 #include "source/game.h"
 #include "source/map.h"
 #include "source/unit.h"
@@ -22,7 +22,7 @@ static f32 MoveAnim, CursorOffset;
 static bool Selected = false, RectSelect = false;
 static UnitHandle MoveTarget, UnitUnderMouse;
 static BuildingHandle SelectedBuild;
-static Vector2 Select1, Select2, MovePos;
+static vec2 Select1, Select2, MovePos;
 static bool ShowDebug = false;
 static i32 UIWidth, UIHeight;
 static tBuildingType *BuildLock = NULL;
@@ -194,8 +194,8 @@ void updateInterface(void) {
 			Player[0].Wood += 200;
 			Magellan = Kroisos = Adam = 0;
 		} else if(Adam == 4) {
-			Vector2 pos = {16.0 + GetRandomValue(-100, 100)/100.0,
-			               16.0 + GetRandomValue(-100, 100)/100.0};
+			vec2 pos = vec2(16.0 + GetRandomValue(-100, 100)/100.0,
+			                16.0 + GetRandomValue(-100, 100)/100.0);
 			newUnit((tUnit){Type: &Peasent, Position: pos});
 			Magellan = Kroisos = Adam = 0;
 		}
@@ -211,9 +211,9 @@ void updateInterface(void) {
 				Player[0].Food -= BuildLock->FoodCost;
 				Player[0].Wood -= BuildLock->WoodCost;
 				forEachUnit(i) if(Units[i].Selected) {
-					tMoveOrder *move = newMoveOrder((tMoveOrder){Target: (Vector2){x/8, y/8}});
+					tMoveOrder *move = newMoveOrder((tMoveOrder){Target: vec2(x/8, y/8)});
 					moveUnit(i, move);
-					unitAction(i, ACTION_MOVE_AND_BUILD, (Vector2){x/8, y/8}, 0);
+					unitAction(i, ACTION_MOVE_AND_BUILD, vec2(x/8, y/8), 0);
 					Units[i].Build.Building = newBuilding(
 						(tBuilding){Type: BuildLock, Player: 0, Finished: false}, x/8, y/8);
 					break;
@@ -256,7 +256,7 @@ void updateInterface(void) {
 		RectSelect = true;
 	} else if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Selected) {
 		RectSelect = false;
-		MovePos = (Vector2){x / 8.0, y / 8.0};
+		MovePos = vec2(x/8.0, y/8.0);
 		tMoveOrder *move;
 		MoveTarget = 0;
 		bool canChop = isTree(MovePos.x, MovePos.y) && getSafe(MovePos.x, MovePos.y).Seen;
@@ -273,24 +273,24 @@ void updateInterface(void) {
 		} else {
 			if(canFarm) {
 				BuildingHandle build = getBuilding(MovePos.x, MovePos.y);
-				MovePos = (Vector2){Buildings[build].FirstX + Buildings[build].Type->SizeX/2 - 0.5,
-				                    Buildings[build].FirstY + Buildings[build].Type->SizeY/2 - 0.75};
+				MovePos = vec2(Buildings[build].FirstX + Buildings[build].Type->SizeX/2 - 0.5,
+				               Buildings[build].FirstY + Buildings[build].Type->SizeY/2 - 0.75);
 			}
-			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
+			move = newMoveOrder((tMoveOrder){Target: vec2(round(MovePos.x), round(MovePos.y))});
 		}
 		i32 numSelected = 0, numUnmoveable = 0;
-		Vector2 mid = {0};
+		vec2 mid = vec2(0);
 		forEachUnit(i) if(Units[i].Selected) {
 			if(!Units[i].Type->CanChop) canChop = false;
 			if(!Units[i].Type->CanFarm) canFarm = false;
 			if(!Units[i].Type->CanBuild) canBuild = false;
 		}
 		forEachUnit(i) if(Units[i].Selected) {
-			mid = Vector2Add(mid, Units[i].Position);
+			mid = vadd(mid, Units[i].Position);
 			moveUnit(i, move);
 			unitAction(i, ACTION_MOVE, MovePos, 0);
 			numSelected++;
-			Vector2 flow = getUnitFlow(i);
+			vec2 flow = getUnitFlow(i);
 			if(!flow.x && !flow.y) numUnmoveable++;
 			if(canFarm && !farmer) {
 				farmer = i;
@@ -304,23 +304,22 @@ void updateInterface(void) {
 			Selected = false;
 			return;
 		}
-		mid = Vector2Divide(mid, (Vector2){numSelected, numSelected});
-		Vector2 dir = Vector2Normalize(Vector2Subtract(mid, MovePos));
+		vec2 dir = vnormalize(vsub(vdiv(mid, numSelected), MovePos));
 
 		// Search for valid position, in case the desired position is unreachable
 		while(numSelected == numUnmoveable || getSafe(MovePos.x, MovePos.y).Move == 0xff) {
 			if(canBuild && builder) break;
 			canFarm = false;
 			numUnmoveable = 0;
-			MovePos = Vector2Add(MovePos, dir);
-			move = newMoveOrder((tMoveOrder){Target: (Vector2){round(MovePos.x), round(MovePos.y)}});
+			MovePos = vadd(MovePos, dir);
+			move = newMoveOrder((tMoveOrder){Target: vec2(round(MovePos.x), round(MovePos.y))});
 			forEachUnit(i) if(Units[i].Selected) {
 				moveUnit(i, move);
-				Vector2 flow = getUnitFlow(i);
+				vec2 flow = getUnitFlow(i);
 				if(!flow.x && !flow.y) numUnmoveable++;
 			}
 			if((u32)MovePos.x >= MAP_SIZE || (u32)MovePos.y >= MAP_SIZE) {
-				MovePos = (Vector2){0};
+				MovePos = vec2(0);
 				break;
 			}
 		}
@@ -350,7 +349,7 @@ void updateInterface(void) {
 
 void beginDrawInterface(void) {
 	if(MoveAnim > 0 && !MoveTarget) drawTileFree(
-		(Vector2){MovePos.x - CursorOffset, MovePos.y - CursorOffset}, 20 - ceil(MoveAnim), 31);
+		vec2(MovePos.x - CursorOffset, MovePos.y - CursorOffset), 20 - ceil(MoveAnim), 31);
 }
 
 void endDrawInterface(void) {
@@ -480,7 +479,7 @@ void endDrawInterface(void) {
 				killUnit(firstSelected);
 				firstSelected = 0;
 				if(--numSelected <= 0) {
-					Select1 = Select2 = (Vector2){0};
+					Select1 = Select2 = vec2(0);
 					Selected = RectSelect = false;
 				}
 			}
@@ -498,7 +497,7 @@ void endDrawInterface(void) {
 			  (tTooltip){Text: "Destroy building"})) {
 				destroyBuilding(SelectedBuild);
 				SelectedBuild = 0;
-				Select1 = Select2 = (Vector2){0};
+				Select1 = Select2 = vec2(0);
 				Selected = RectSelect = false;
 			}
 

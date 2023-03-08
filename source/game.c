@@ -1,5 +1,6 @@
 #include "source/tools/raylib.h"
 #include "source/tools/helper.h"
+#include "source/tools/vector.h"
 #include "source/map.h"
 #include "source/interface.h"
 #include "source/game.h"
@@ -66,35 +67,35 @@ void updateGame(void) {
 void drawTile(i32 x, i32 y, u32 tx, u32 ty, f32 alpha) {
 	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){x*8*DrawSize-CameraX, y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
-		(Vector2){0}, 0, (Color){255,255,255,255.0*alpha});
+		vec2(0), 0, (Color){255,255,255,255.0*alpha});
 }
 
 void drawBuilding(i32 x, i32 y, u32 tx, u32 ty, PlayerHandle player) {
 	DrawTexturePro(Player[player].Buildings, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){x*8*DrawSize-CameraX, y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
-		(Vector2){0}, 0, WHITE);
+		vec2(0), 0, WHITE);
 }
 
 void drawTileFixed(i32 x, i32 y, u32 tx, u32 ty, Color color, i32 scale) {
 	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8},
-		(Rectangle){x, y, 8*scale, 8*scale}, (Vector2){0}, 0, color);
+		(Rectangle){x, y, 8*scale, 8*scale}, vec2(0), 0, color);
 }
 
-void drawTileFree(Vector2 pos, u32 tx, u32 ty) {
+void drawTileFree(vec2 pos, u32 tx, u32 ty) {
 	DrawTexturePro(Tileset, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){pos.x*8*DrawSize-CameraX, pos.y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
-		(Vector2){0}, 0, WHITE);
+		vec2(0), 0, WHITE);
 }
 
-void drawSprite(Vector2 pos, PlayerHandle player, u32 tx, u32 ty) {
+void drawSprite(vec2 pos, PlayerHandle player, u32 tx, u32 ty) {
 	DrawTexturePro(Player[player].Sprites, (Rectangle){tx*8, ty*8, 8, 8},
 		(Rectangle){pos.x*8*DrawSize-CameraX, pos.y*8*DrawSize-CameraY, 8*DrawSize, 8*DrawSize},
-		(Vector2){0}, 0, WHITE);
+		vec2(0), 0, WHITE);
 }
 
 void drawSpriteFixed(i32 x, i32 y, PlayerHandle player, u32 tx, u32 ty) {
 	DrawTexturePro(Player[player].Sprites, (Rectangle){tx*8, ty*8, 8, 8},
-		(Rectangle){x, y, 8*DrawSize, 8*DrawSize}, (Vector2){0}, 0, WHITE);
+		(Rectangle){x, y, 8*DrawSize, 8*DrawSize}, vec2(0), 0, WHITE);
 }
 
 i32 choice(i32 x, i32 y) {

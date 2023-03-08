@@ -1,5 +1,4 @@
 #include "source/tools/raylib.h"
-#include "source/tools/raymath.h"
 #include "source/tools/helper.h"
 #include "source/game.h"
 #include "source/map.h"

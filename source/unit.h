@@ -2,6 +2,7 @@
 #define H_UNIT
 
 #include "source/tools/helper.h"
+#include "source/tools/vector.h"
 #include "source/game.h"
 #include "source/map.h"
 #include "source/building.h"
@@ -17,7 +18,7 @@ typedef struct tFlow {
 
 typedef struct tMoveOrder {
 	i32 References;
-	Vector2 Target;
+	vec2 Target;
 	UnitHandle Follow;
 	bool OnlySeen;
 	bool AttackOnSight;
@@ -60,7 +61,7 @@ typedef struct tUnit {
 	tUnitType *Type;
 	eAction Action;
 	PlayerHandle Player;
-	Vector2 Position, Speed;
+	vec2 Position, Speed;
 	bool Selected;
 	i32 Health;
 	tMoveOrder *MoveOrder;
@@ -76,12 +77,12 @@ typedef struct tUnit {
 		} Chop;
 		struct {
 			f32 Timer;
-			Vector2 Target;
+			vec2 Target;
 			BuildingHandle Building;
 		} Farm;
 		struct {
 			f32 Timer;
-			Vector2 Target;
+			vec2 Target;
 			BuildingHandle Building;
 		} Build;
 	};
@@ -94,8 +95,8 @@ extern u32 NumUnits, AllocatedUnits, UnitPtr;
 
 UnitHandle newUnit(tUnit unit);
 void killUnit(UnitHandle unit);
-void unitAction(UnitHandle unit, eAction action, Vector2 target, UnitHandle enemy);
-Vector2 getUnitFlow(UnitHandle unit);
+void unitAction(UnitHandle unit, eAction action, vec2 target, UnitHandle enemy);
+vec2 getUnitFlow(UnitHandle unit);
 void drawUnits(void);
 void updateUnits(void);
 void moveUnit(UnitHandle unit, tMoveOrder *order);
